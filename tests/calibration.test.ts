@@ -8,8 +8,15 @@ import {
 } from "../src/calibration/index.js";
 import { createUniformClubAttributes } from "../src/clubs/index.js";
 import { createSampleCourse } from "../src/fixtures/index.js";
-import type { CompleteGolfer, GolferGender } from "../src/types/index.js";
-import { simulateRound } from "../src/modules/round-composer/index.js";
+import type { CompleteGolfer, GolferGender, GolferRoundStats } from "../src/types/index.js";
+import {
+  accumulateRoundTrial,
+  createRoundStatsAccumulator,
+  finalizeRoundStatsAccumulator,
+  iterateRoundTrials,
+  simulateRoundTrial,
+} from "../src/modules/round-composer/index.js";
+import { createRandomSource } from "../src/utils/random.js";
 import { expectEliteCalibrationStats } from "./calibration-helpers.js";
 
 function createEliteGolfer(gender?: GolferGender): CompleteGolfer {
@@ -45,19 +52,27 @@ function createEliteGolfer(gender?: GolferGender): CompleteGolfer {
   };
 }
 
+function simulateEliteRoundStats(
+  golfer: CompleteGolfer,
+  trials: number,
+  seed: number,
+): GolferRoundStats {
+  const course = createSampleCourse();
+  const accumulator = createRoundStatsAccumulator(course.length);
+
+  for (const outcome of iterateRoundTrials(golfer, course, { trials, seed })) {
+    accumulateRoundTrial(accumulator, outcome);
+  }
+
+  return finalizeRoundStatsAccumulator(accumulator, golfer, course);
+}
+
 describe("PGA Tour elite calibration (skill 99)", () => {
   it("matches tour anchor statistics within tolerance", () => {
-    const course = createSampleCourse();
-    const golfer = createEliteGolfer("male");
-    const result = simulateRound({
-      course,
-      golfers: [golfer],
-      trials: 2500,
-      seed: 42,
-    });
+    const stats = simulateEliteRoundStats(createEliteGolfer("male"), 2500, 42);
 
     expectEliteCalibrationStats(
-      result.golferStats[0]!,
+      stats,
       PGA_TOUR_ELITE_BENCHMARKS,
       calibrationToleranceForGender("male"),
     );
@@ -80,41 +95,11 @@ describe("LPGA Tour elite calibration (skill 99, female)", () => {
     expect(LPGA_TOUR_ELITE_BENCHMARKS.drivingDistanceYards).toBe(265);
   });
 
-  it("matches LPGA driving distance anchor within tolerance", () => {
-    const course = createSampleCourse();
-    const golfer = createEliteGolfer("female");
-    const result = simulateRound({
-      course,
-      golfers: [golfer],
-      trials: 2500,
-      seed: 42,
-    });
-
-    const stats = result.golferStats[0]!;
-    const benchmarks = LPGA_TOUR_ELITE_BENCHMARKS;
-    const tolerance = calibrationToleranceForGender("female");
-
-    expect(stats.averageDrivingDistanceYards).not.toBeNull();
-    expect(stats.averageDrivingDistanceYards!).toBeGreaterThanOrEqual(
-      benchmarks.drivingDistanceYards - tolerance.drivingDistanceYards,
-    );
-    expect(stats.averageDrivingDistanceYards!).toBeLessThanOrEqual(
-      benchmarks.drivingDistanceYards + tolerance.drivingDistanceYards,
-    );
-  });
-
-  it("matches all LPGA tour anchor statistics within tolerance", () => {
-    const course = createSampleCourse();
-    const golfer = createEliteGolfer("female");
-    const result = simulateRound({
-      course,
-      golfers: [golfer],
-      trials: 2500,
-      seed: 42,
-    });
+  it("matches LPGA tour anchor statistics within tolerance", () => {
+    const stats = simulateEliteRoundStats(createEliteGolfer("female"), 2500, 42);
 
     expectEliteCalibrationStats(
-      result.golferStats[0]!,
+      stats,
       eliteBenchmarksForGender("female"),
       calibrationToleranceForGender("female"),
     );
@@ -125,5 +110,27 @@ describe("eliteBenchmarksForGender", () => {
   it("returns PGA benchmarks for male and LPGA benchmarks for female", () => {
     expect(eliteBenchmarksForGender("male")).toBe(PGA_TOUR_ELITE_BENCHMARKS);
     expect(eliteBenchmarksForGender("female")).toBe(LPGA_TOUR_ELITE_BENCHMARKS);
+  });
+});
+
+describe("trial-first round simulation", () => {
+  it("iterateRoundTrials yields the requested number of outcomes", () => {
+    const course = createSampleCourse();
+    const golfer = createEliteGolfer("male");
+    const outcomes = [...iterateRoundTrials(golfer, course, { trials: 25, seed: 1 })];
+    expect(outcomes).toHaveLength(25);
+    expect(outcomes[0]?.holeStrokes).toHaveLength(18);
+  });
+
+  it("simulateRoundTrial matches a single iterator step", () => {
+    const course = createSampleCourse();
+    const golfer = createEliteGolfer("male");
+    const random = createRandomSource(99);
+    const direct = simulateRoundTrial(golfer, course, random);
+    const random2 = createRandomSource(99);
+    const [iterated] = iterateRoundTrials(golfer, course, { trials: 1, seed: 99 });
+    expect(iterated?.totalStrokes).toBe(direct.totalStrokes);
+    expect(iterated?.totalPutts).toBe(direct.totalPutts);
+    void random2;
   });
 });

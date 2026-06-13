@@ -1,6 +1,9 @@
 import {
-  simulateRound,
+  accumulateRoundTrial,
+  createRoundStatsAccumulator,
   createUniformClubAttributes,
+  finalizeRoundStatsAccumulator,
+  iterateRoundTrials,
   LPGA_TOUR_ELITE_BENCHMARKS,
   PGA_TOUR_ELITE_BENCHMARKS,
 } from "../dist/index.js";
@@ -39,14 +42,24 @@ const mid50 = {
 };
 
 const course = createSampleCourse();
+const trials = 3000;
 
 console.log("PGA anchors:", PGA_TOUR_ELITE_BENCHMARKS);
 console.log("LPGA anchors:", LPGA_TOUR_ELITE_BENCHMARKS);
 console.log("");
 
+function simulateRoundStats(golfer, seed) {
+  const accumulator = createRoundStatsAccumulator(course.length);
+
+  for (const outcome of iterateRoundTrials(golfer, course, { trials, seed: 42 })) {
+    accumulateRoundTrial(accumulator, outcome);
+  }
+
+  return finalizeRoundStatsAccumulator(accumulator, golfer, course);
+}
+
 for (const golfer of [elite99Male, elite99Female, mid50]) {
-  const r = simulateRound({ course, golfers: [golfer], trials: 3000, seed: 42 });
-  const s = r.golferStats[0];
+  const s = simulateRoundStats(golfer);
   console.log(golfer.name);
   console.log("  Score:", s.expectedScore.toFixed(2), `(${s.expectedScoreRelativeToPar >= 0 ? "+" : ""}${s.expectedScoreRelativeToPar.toFixed(2)})`);
   console.log("  Putts:", s.averagePuttsPerRound.toFixed(2));

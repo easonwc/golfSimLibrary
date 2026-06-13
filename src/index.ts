@@ -25,6 +25,12 @@ export {
 } from "./types/index.js";
 export { GolfSimError, ValidationError } from "./errors.js";
 export {
+  createRandomSource,
+  gaussianRandom,
+  SeededRandom,
+} from "./utils/random.js";
+export type { RandomSource } from "./utils/random.js";
+export {
   generateRandomGolferAttributes,
   generateRandomGolfers,
 } from "./utils/generate-golfer.js";
@@ -109,8 +115,12 @@ export type {
   TeeShotStats,
 } from "./modules/tee-shot/index.js";
 export {
+  accumulateHoleTrial,
   aggregateGolferHoleStats,
+  createHoleStatsAccumulator,
   deriveGolferSeed,
+  finalizeHoleStatsAccumulator,
+  iterateHoleTrials,
   simulateHole,
   simulateHoleTrial,
   simulateHoleValidated,
@@ -122,12 +132,17 @@ export type {
   GolferHoleStats,
   HoleComposerInput,
   HoleComposerResult,
+  HoleStatsAccumulator,
   HoleTrialOutcome,
   ScoreRelativeToParDistribution,
 } from "./modules/hole-composer/index.js";
 export {
+  accumulateRoundTrial,
   aggregateGolferRoundStats,
   coursePar,
+  createRoundStatsAccumulator,
+  finalizeRoundStatsAccumulator,
+  iterateRoundTrials,
   simulateRound,
   simulateRoundTrial,
   simulateRoundValidated,
@@ -137,7 +152,9 @@ export type {
   GolferRoundStats,
   RoundComposerInput,
   RoundComposerResult,
+  RoundStatsAccumulator,
   RoundTrialOutcome,
+  TrialIterationOptions,
 } from "./modules/round-composer/index.js";
 export {
   approachClubSkill,

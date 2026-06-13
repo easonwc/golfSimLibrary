@@ -3,7 +3,8 @@ import {
   generateRandomGolferAttributes,
   generateRandomGolfers,
 } from "../src/utils/generate-golfer.js";
-import { simulateRound } from "../src/modules/round-composer/index.js";
+import { simulateRoundTrial } from "../src/modules/round-composer/index.js";
+import { createRandomSource } from "../src/utils/random.js";
 import { createSampleCourse } from "../src/fixtures/index.js";
 
 function expectRatingsInRange(
@@ -63,15 +64,13 @@ describe("generateRandomGolferAttributes", () => {
     const course = createSampleCourse();
     const profile = generateRandomGolferAttributes({ gender: "male", seed: 99 });
 
-    const result = simulateRound({
+    const outcome = simulateRoundTrial(
+      { id: "random-1", ...profile },
       course,
-      golfers: [{ id: "random-1", ...profile }],
-      trials: 200,
-      seed: 1,
-    });
+      createRandomSource(1),
+    );
 
-    expect(result.golferStats).toHaveLength(1);
-    expect(result.golferStats[0]?.expectedScore).toBeGreaterThan(60);
+    expect(outcome.totalStrokes).toBeGreaterThan(60);
   });
 });
 

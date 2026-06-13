@@ -1,24 +1,50 @@
+import type { CompleteGolfer, Course } from "../../types/index.js";
 import { createRandomSource } from "../../utils/random.js";
+import {
+  accumulateRoundTrial,
+  createRoundStatsAccumulator,
+  finalizeRoundStatsAccumulator,
+} from "./accumulator.js";
 import {
   aggregateGolferRoundStats,
   coursePar,
   deriveGolferSeed,
   simulateRoundTrial,
 } from "./transform.js";
-import type { RoundComposerInput, RoundComposerResult } from "./types.js";
+import type { RoundComposerInput, RoundComposerResult, TrialIterationOptions } from "./types.js";
 import { validateRoundComposerInput } from "./validate.js";
 
 /**
- * Simulates full 18-hole rounds for 1–4 golfers by composing the hole
- * composer across every hole in the course.
+ * Yields one {@link RoundTrialOutcome} per trial. The library does not store
+ * outcomes — the caller decides whether to keep, aggregate, or discard each result.
+ */
+export function* iterateRoundTrials(
+  golfer: CompleteGolfer,
+  course: Course,
+  options: TrialIterationOptions = {},
+): Generator<import("./types.js").RoundTrialOutcome> {
+  const { trials = 5_000, seed } = options;
+  const random = createRandomSource(seed);
+
+  for (let i = 0; i < trials; i += 1) {
+    yield simulateRoundTrial(golfer, course, random);
+  }
+}
+
+/**
+ * @deprecated Prefer {@link iterateRoundTrials} or {@link simulateRoundTrial} and
+ * caller-owned aggregation via {@link accumulateRoundTrial} /
+ * {@link aggregateGolferRoundStats}.
  *
- * Flow: validate input → per-golfer round trials → round stats.
+ * Runs many trials and returns aggregated stats. The library no longer retains
+ * individual trial outcomes internally.
  */
 export function simulateRound(rawInput: unknown): RoundComposerResult {
   const input = validateRoundComposerInput(rawInput);
   return simulateRoundValidated(input);
 }
 
+/** @deprecated See {@link simulateRound}. */
 export function simulateRoundValidated(
   input: RoundComposerInput,
 ): RoundComposerResult {
@@ -27,13 +53,16 @@ export function simulateRoundValidated(
 
   const golferStats = golfers.map((golfer, index) => {
     const random = createRandomSource(deriveGolferSeed(seed, index));
-    const outcomes = [];
+    const accumulator = createRoundStatsAccumulator(course.length);
 
     for (let i = 0; i < trials; i += 1) {
-      outcomes.push(simulateRoundTrial(golfer, course, random));
+      accumulateRoundTrial(
+        accumulator,
+        simulateRoundTrial(golfer, course, random),
+      );
     }
 
-    return aggregateGolferRoundStats(golfer, course, outcomes, trials);
+    return finalizeRoundStatsAccumulator(accumulator, golfer, course);
   });
 
   return {
@@ -49,10 +78,15 @@ export type {
   RoundComposerInput,
   RoundComposerResult,
   RoundTrialOutcome,
+  TrialIterationOptions,
 } from "./types.js";
 export {
+  accumulateRoundTrial,
   aggregateGolferRoundStats,
   coursePar,
+  createRoundStatsAccumulator,
   deriveGolferSeed,
+  finalizeRoundStatsAccumulator,
   simulateRoundTrial,
 } from "./transform.js";
+export type { RoundStatsAccumulator } from "./accumulator.js";

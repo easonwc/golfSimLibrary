@@ -17,8 +17,12 @@ import { simulateTeeShotDrive } from "../tee-shot/transform.js";
 import type {
   GolferHoleStats,
   HoleTrialOutcome,
-  ScoreRelativeToParDistribution,
 } from "./types.js";
+import {
+  accumulateHoleTrial,
+  createHoleStatsAccumulator,
+  finalizeHoleStatsAccumulator,
+} from "./accumulator.js";
 
 const PAR5_LAYUP_THRESHOLD_YARDS = 210;
 const PAR5_LAYUP_DISTANCE_YARDS = 175;
@@ -206,105 +210,31 @@ export function simulateHoleTrial(
   };
 }
 
-function classifyScoreRelativeToPar(
-  relative: number,
-): keyof ScoreRelativeToParDistribution {
-  if (relative <= -2) {
-    return "eagleOrBetter";
-  }
-  if (relative === -1) {
-    return "birdie";
-  }
-  if (relative === 0) {
-    return "par";
-  }
-  if (relative === 1) {
-    return "bogey";
-  }
-  if (relative === 2) {
-    return "doubleBogey";
-  }
-  return "tripleOrWorse";
-}
-
 export function aggregateGolferHoleStats(
   golfer: CompleteGolfer,
   hole: CompleteHole,
   outcomes: HoleTrialOutcome[],
   trials: number,
 ): GolferHoleStats {
-  const scoreDistribution: ScoreRelativeToParDistribution = {
-    eagleOrBetter: 0,
-    birdie: 0,
-    par: 0,
-    bogey: 0,
-    doubleBogey: 0,
-    tripleOrWorse: 0,
-  };
-
-  let strokeTotal = 0;
-  let puttTotal = 0;
-  let fairwayHits = 0;
-  let fairwayTrials = 0;
-  let girCount = 0;
-  let upAndDownCount = 0;
-  let scrambleCount = 0;
-  let missedGreenCount = 0;
-
+  const accumulator = createHoleStatsAccumulator();
   for (const outcome of outcomes) {
-    strokeTotal += outcome.totalStrokes;
-    puttTotal += outcome.putts;
-    scoreDistribution[classifyScoreRelativeToPar(outcome.scoreRelativeToPar)] +=
-      1;
-
-    if (outcome.fairwayHit !== null) {
-      fairwayTrials += 1;
-      if (outcome.fairwayHit) {
-        fairwayHits += 1;
-      }
-    }
-
-    if (outcome.greenInRegulation) {
-      girCount += 1;
-    }
-
-    if (outcome.missedApproachGreen) {
-      missedGreenCount += 1;
-      if (outcome.upAndDown) {
-        upAndDownCount += 1;
-      }
-    }
-
-    if (outcome.scramble) {
-      scrambleCount += 1;
-    }
+    accumulateHoleTrial(accumulator, outcome);
   }
-
-  const expectedScore = strokeTotal / trials;
-
-  return {
-    golferId: golfer.id,
-    name: golfer.name,
-    trials,
-    expectedScore,
-    expectedScoreRelativeToPar: expectedScore - hole.par,
-    averagePutts: puttTotal / trials,
-    fairwayHitRate:
-      fairwayTrials > 0 ? fairwayHits / fairwayTrials : null,
-    greenInRegulationRate: girCount / trials,
-    upAndDownRate:
-      missedGreenCount > 0 ? upAndDownCount / missedGreenCount : 0,
-    scrambleRate: scrambleCount / trials,
-    scoreDistribution: {
-      eagleOrBetter: scoreDistribution.eagleOrBetter / trials,
-      birdie: scoreDistribution.birdie / trials,
-      par: scoreDistribution.par / trials,
-      bogey: scoreDistribution.bogey / trials,
-      doubleBogey: scoreDistribution.doubleBogey / trials,
-      tripleOrWorse: scoreDistribution.tripleOrWorse / trials,
-    },
-  };
+  if (accumulator.trials !== trials) {
+    throw new RangeError(
+      `outcomes length (${accumulator.trials}) does not match trials (${trials})`,
+    );
+  }
+  return finalizeHoleStatsAccumulator(accumulator, golfer, hole);
 }
+
+export {
+  accumulateHoleTrial,
+  createHoleStatsAccumulator,
+  finalizeHoleStatsAccumulator,
+} from "./accumulator.js";
+
+export type { HoleStatsAccumulator } from "./accumulator.js";
 
 export function deriveGolferSeed(baseSeed: number | undefined, index: number): number | undefined {
   if (baseSeed === undefined) {

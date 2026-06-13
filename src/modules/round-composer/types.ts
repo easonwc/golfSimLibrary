@@ -1,6 +1,13 @@
 import type { CompleteGolfer, Course } from "../../types/index.js";
 import type { ScoreRelativeToParDistribution } from "../hole-composer/types.js";
 
+export interface TrialIterationOptions {
+  /** Number of trials to run (default 5_000). */
+  trials?: number;
+  /** Seed for reproducible RNG. */
+  seed?: number;
+}
+
 export interface RoundComposerInput {
   /** Exactly 18 complete holes. */
   course: Course;

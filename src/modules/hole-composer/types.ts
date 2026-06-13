@@ -1,5 +1,12 @@
 import type { CompleteGolfer, CompleteHole } from "../../types/index.js";
 
+export interface TrialIterationOptions {
+  /** Number of trials to run (default 5_000). */
+  trials?: number;
+  /** Seed for reproducible RNG. */
+  seed?: number;
+}
+
 export interface HoleComposerInput {
   hole: CompleteHole;
   /** Between 1 and 4 golfers, each with all required attributes. */

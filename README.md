@@ -27,74 +27,90 @@ npm test
 
 ## Quick start
 
-### Simulate one hole for a foursome
+The simulation layer returns **what happened** on each trial. Your app decides whether to keep, aggregate, or discard results.
+
+### One round trial
 
 ```typescript
-import { simulateHole } from "golf-sim-library";
+import { simulateRoundTrial } from "golf-sim-library";
+import { createSampleCourse, sampleTourPro } from "golf-sim-library/fixtures";
+import { createRandomSource } from "golf-sim-library";
 
-const result = simulateHole({
-  hole: {
-    id: "hole-7",
-    par: 4,
-    lengthYards: 410,
-    green: { sizeSqFt: 5200, speed: 11, slope: 0.3, pinDifficulty: 0.4 },
-    approach: { landingDifficulty: 0.35, elevationPenalty: 0.2 },
-    shortGame: { roughDifficulty: 0.55, bunkerDifficulty: 0.6, collectionDifficulty: 0.35 },
-    teeShot: { fairwayWidth: 0.55, roughDifficulty: 0.5, hazardDifficulty: 0.4 },
-  },
-  golfers: [
-    {
-      id: "player-1",
-      gender: "male",
-      putting: { putting: 72, shortPutting: 70, lagPutting: 74 },
-      approach: { approach: 78, accuracy: 76, distanceControl: 80, dispersion: 74 },
-      shortGame: { shortGame: 75, chipping: 78, bunkerPlay: 70, pitching: 74 },
-      teeShot: { driving: 74, distance: 76, accuracy: 72, dispersion: 70 },
-      clubs: { driver: 76, wood: 74, longIron: 78, midIron: 79, shortIron: 80, wedge: 82 },
-    },
-  ],
-  trials: 5000,
-  seed: 42,
-});
+const course = createSampleCourse();
+const random = createRandomSource(42);
+const outcome = simulateRoundTrial(sampleTourPro, course, random);
 
-console.log(result.golferStats[0].expectedScore);
+console.log(outcome.totalStrokes, outcome.scoreRelativeToPar);
 ```
 
-Set `gender: "female"` for LPGA distance and performance calibration. When omitted, golfers default to male (PGA) behavior.
-
-### Simulate a full round
+### Many trials — caller owns storage and aggregation
 
 ```typescript
-import { simulateRound } from "golf-sim-library";
+import {
+  accumulateRoundTrial,
+  createRoundStatsAccumulator,
+  finalizeRoundStatsAccumulator,
+  iterateRoundTrials,
+} from "golf-sim-library";
+import { createSampleCourse, sampleTourPro } from "golf-sim-library/fixtures";
 
-const result = simulateRound({
-  course: [ /* 18 complete holes */ ],
-  golfers: [ /* 1–4 complete golfers */ ],
+const course = createSampleCourse();
+const accumulator = createRoundStatsAccumulator(course.length);
+
+for (const outcome of iterateRoundTrials(sampleTourPro, course, {
   trials: 5000,
   seed: 42,
-});
+})) {
+  // Keep, discard, or fold into running totals — your choice
+  accumulateRoundTrial(accumulator, outcome);
+}
 
-for (const stats of result.golferStats) {
-  console.log(stats.name, stats.expectedScore, stats.holeByHoleExpectedScores);
+const stats = finalizeRoundStatsAccumulator(accumulator, sampleTourPro, course);
+console.log(stats.expectedScore, stats.greenInRegulationRate);
+```
+
+Alternatively, collect outcomes yourself and call `aggregateGolferRoundStats(golfer, course, outcomes, trials)`.
+
+Set `gender: "female"` on golfers for LPGA distance and performance calibration. When omitted, golfers default to male (PGA) behavior.
+
+### One hole trial
+
+```typescript
+import { iterateHoleTrials, simulateHoleTrial } from "golf-sim-library";
+
+// Single trial
+const outcome = simulateHoleTrial(golfer, hole, random);
+
+// Many trials
+for (const holeOutcome of iterateHoleTrials(golfer, hole, { trials: 3000, seed: 42 })) {
+  // caller handles each result
 }
 ```
 
 ### Sample data for demos
 
 ```typescript
-import { simulateRound } from "golf-sim-library";
+import {
+  accumulateRoundTrial,
+  createRoundStatsAccumulator,
+  finalizeRoundStatsAccumulator,
+  iterateRoundTrials,
+} from "golf-sim-library";
 import {
   createSampleCourse,
   sampleTourPro,
   sampleHighHandicap,
 } from "golf-sim-library/fixtures";
 
-simulateRound({
-  course: createSampleCourse(),
-  golfers: [sampleTourPro, sampleHighHandicap],
-  trials: 2000,
-  seed: 1,
-});
+const course = createSampleCourse();
+
+for (const golfer of [sampleTourPro, sampleHighHandicap]) {
+  const acc = createRoundStatsAccumulator(course.length);
+  for (const outcome of iterateRoundTrials(golfer, course, { trials: 2000, seed: 1 })) {
+    accumulateRoundTrial(acc, outcome);
+  }
+  console.log(finalizeRoundStatsAccumulator(acc, golfer, course));
+}
 ```
 
 ### Generate random golfers and courses
@@ -102,12 +118,10 @@ simulateRound({
 ```typescript
 import {
   generateRandomCourse,
-  generateRandomGolferAttributes,
   generateRandomGolfers,
-  simulateRound,
+  iterateRoundTrials,
 } from "golf-sim-library";
 
-// gender is required when generating random skill attributes
 const lpgaField = generateRandomGolfers(4, { gender: "female", seed: 42 }).map(
   (attrs, index) => ({
     id: `player-${index + 1}`,
@@ -119,11 +133,15 @@ const lpgaField = generateRandomGolfers(4, { gender: "female", seed: 42 }).map(
 const course = generateRandomCourse({
   parThrees: 4,
   parFives: 4,
-  difficulty: "medium", // "easy" | "medium" | "hard"
+  difficulty: "medium",
   seed: 99,
 });
 
-const result = simulateRound({ course, golfers: lpgaField, trials: 2000, seed: 1 });
+for (const golfer of lpgaField) {
+  for (const outcome of iterateRoundTrials(golfer, course, { trials: 500, seed: 1 })) {
+    // tournament / analytics layer decides what to do with each outcome
+  }
+}
 ```
 
 Run the included examples:
@@ -145,8 +163,9 @@ Shot modules
 └── Tee shot     par 4/5 only → fairway + remaining distance
 
 Composers
-├── Hole composer   one hole, 1–4 golfers
-└── Round composer  18 holes, 1–4 golfers
+├── simulateRoundTrial / simulateHoleTrial   one trial → one outcome
+├── iterateRoundTrials / iterateHoleTrials   yield trials; library does not store them
+└── aggregate* / accumulate* / finalize*     optional stats helpers (caller-owned data)
 
 Calibration
 ├── gender-distance      carry gap by shot length (driver → wedge)
@@ -197,12 +216,36 @@ Category attributes (`approach`, `teeShot`, etc.) describe overall technique; **
 
 ## Public API
 
-### Composers (recommended entry points)
+### Simulation (primary)
 
 | Function | Description |
 |----------|-------------|
-| `simulateRound(input)` | Full 18-hole round for 1–4 golfers |
-| `simulateHole(input)` | Single hole for 1–4 golfers |
+| `simulateRoundTrial(golfer, course, random)` | One complete 18-hole round outcome |
+| `simulateHoleTrial(golfer, hole, random)` | One complete hole outcome |
+| `iterateRoundTrials(golfer, course, options?)` | Generator of round outcomes |
+| `iterateHoleTrials(golfer, hole, options?)` | Generator of hole outcomes |
+
+The library does **not** retain trial history. Each outcome is returned to the caller.
+
+### Aggregation (optional — caller-owned)
+
+| Function | Description |
+|----------|-------------|
+| `createRoundStatsAccumulator(holeCount)` | Start incremental round totals |
+| `accumulateRoundTrial(accumulator, outcome)` | Fold one trial into totals |
+| `finalizeRoundStatsAccumulator(accumulator, golfer, course)` | Produce `GolferRoundStats` |
+| `aggregateGolferRoundStats(golfer, course, outcomes, trials)` | Stats from a caller-built array |
+| `createHoleStatsAccumulator()` / `accumulateHoleTrial` / `finalizeHoleStatsAccumulator` | Hole-level equivalents |
+| `aggregateGolferHoleStats(...)` | Stats from a caller-built array |
+
+### Deprecated batch composers
+
+| Function | Description |
+|----------|-------------|
+| `simulateRound(input)` | **Deprecated** — runs trials and returns aggregated stats |
+| `simulateHole(input)` | **Deprecated** — same for one hole |
+
+Prefer `iterate*Trials` + caller-owned aggregation. Deprecated functions no longer store individual trial arrays internally.
 
 ### Shot modules
 

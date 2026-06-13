@@ -1,5 +1,8 @@
 import {
-  simulateHole,
+  accumulateHoleTrial,
+  createHoleStatsAccumulator,
+  finalizeHoleStatsAccumulator,
+  iterateHoleTrials,
 } from "../dist/index.js";
 import {
   createSamplePar4Hole,
@@ -8,17 +11,22 @@ import {
 } from "../dist/fixtures/index.js";
 
 const hole = createSamplePar4Hole();
+const trials = 3_000;
 
-const result = simulateHole({
-  hole,
-  golfers: [sampleTourPro, sampleHighHandicap],
-  trials: 3_000,
-  seed: 42,
-});
+function simulateGolferHole(golfer, seed) {
+  const accumulator = createHoleStatsAccumulator();
 
-console.log(`Hole ${result.holeId} (par ${result.par})\n`);
+  for (const outcome of iterateHoleTrials(golfer, hole, { trials, seed })) {
+    accumulateHoleTrial(accumulator, outcome);
+  }
 
-for (const stats of result.golferStats) {
+  return finalizeHoleStatsAccumulator(accumulator, golfer, hole);
+}
+
+console.log(`Hole ${hole.id} (par ${hole.par})\n`);
+
+for (const [index, golfer] of [sampleTourPro, sampleHighHandicap].entries()) {
+  const stats = simulateGolferHole(golfer, 42 + index);
   console.log(`${stats.name ?? stats.golferId}`);
   console.log(`  Expected score: ${stats.expectedScore.toFixed(2)} (${formatRelative(stats.expectedScoreRelativeToPar)})`);
   console.log(`  GIR:            ${pct(stats.greenInRegulationRate)}`);

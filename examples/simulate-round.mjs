@@ -1,6 +1,9 @@
 import {
+  accumulateRoundTrial,
   coursePar,
-  simulateRound,
+  createRoundStatsAccumulator,
+  finalizeRoundStatsAccumulator,
+  iterateRoundTrials,
 } from "../dist/index.js";
 import {
   createSampleCourse,
@@ -10,17 +13,22 @@ import {
 
 const course = createSampleCourse();
 const par = coursePar(course);
+const trials = 1_000;
 
-const result = simulateRound({
-  course,
-  golfers: [sampleTourPro, sampleHighHandicap],
-  trials: 1_000,
-  seed: 42,
-});
+function simulateGolferRound(golfer, seed) {
+  const accumulator = createRoundStatsAccumulator(course.length);
+
+  for (const outcome of iterateRoundTrials(golfer, course, { trials, seed })) {
+    accumulateRoundTrial(accumulator, outcome);
+  }
+
+  return finalizeRoundStatsAccumulator(accumulator, golfer, course);
+}
 
 console.log(`Sample course (par ${par})\n`);
 
-for (const stats of result.golferStats) {
+for (const [index, golfer] of [sampleTourPro, sampleHighHandicap].entries()) {
+  const stats = simulateGolferRound(golfer, 42 + index);
   console.log(`${stats.name ?? stats.golferId}`);
   console.log(`  Expected score: ${stats.expectedScore.toFixed(2)} (${formatRelative(stats.expectedScoreRelativeToPar)})`);
   console.log(`  GIR:            ${pct(stats.greenInRegulationRate)}`);
