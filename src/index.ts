@@ -32,6 +32,11 @@ export type {
   GolferSkillAttributes,
 } from "./utils/generate-golfer.js";
 export {
+  countPars,
+  generateRandomCourse,
+} from "./utils/generate-course.js";
+export type { GenerateRandomCourseOptions } from "./utils/generate-course.js";
+export {
   estimateFirstPuttDistanceFeet,
   makeRateAtDistance,
   simulatePutting,
