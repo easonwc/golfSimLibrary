@@ -1,4 +1,8 @@
 import { ValidationError } from "../../errors.js";
+import {
+  dispersionScale,
+  scaleRateToSkill,
+} from "../../calibration/index.js";
 import type {
   Golfer,
   GolferShortGameAttributes,
@@ -17,20 +21,39 @@ const YARDS_TO_FEET = 3;
 
 const LIE_PENALTY: Record<ShortGameLie, number> = {
   fringe: 1,
-  rough: 1.22,
-  bunker: 1.42,
-  deepRough: 1.55,
+  rough: 1.18,
+  bunker: 1.35,
+  deepRough: 1.48,
 };
+
+/** Elite tour green contact rates by lie at skill 99. */
+const ELITE_CONTACT_RATE: Record<ShortGameLie, number> = {
+  fringe: 0.93,
+  rough: 0.84,
+  bunker: 0.74,
+  deepRough: 0.68,
+};
+
+/** Elite tour short game proximity dispersion at ~12 yards (feet). */
+const ELITE_SHORT_GAME_RADIAL_SIGMA_FEET = 3.6;
+
+/** Elite chip proximity to the hole once the green is reached (~5 ft average). */
+const ELITE_CHIP_ON_GREEN_PROXIMITY_SIGMA_FEET = 3.0;
+
+function chipOnGreenProximityFeet(golfer: Golfer, random: RandomSource): number {
+  const skill = blendedShortGameSkill(golfer, 12, "fringe");
+  const sigma =
+    ELITE_CHIP_ON_GREEN_PROXIMITY_SIGMA_FEET * dispersionScale(skill);
+  const depthFeet = gaussianRandom(random, 0, sigma);
+  const lateralFeet = gaussianRandom(random, 0, sigma);
+  return Math.max(1, Math.sqrt(depthFeet ** 2 + lateralFeet ** 2));
+}
 
 function requireShortGame(golfer: Golfer): GolferShortGameAttributes {
   if (!golfer.shortGame) {
     throw new ValidationError("golfer.shortGame must be an object");
   }
   return golfer.shortGame;
-}
-
-function skillFactor(skill: number): number {
-  return 1 - (skill / 100) * 0.58;
 }
 
 function blendedShortGameSkill(
@@ -66,18 +89,18 @@ function greenContactRate(
     throw new ValidationError("hole.shortGame must be an object");
   }
 
-  const skill = blendedShortGameSkill(golfer, missDistanceYards, lie) / 100;
-  let rate = 0.42 + skill * 0.54;
+  const skill = blendedShortGameSkill(golfer, missDistanceYards, lie);
+  const eliteRate = ELITE_CONTACT_RATE[lie];
+  let rate = scaleRateToSkill(skill, eliteRate, eliteRate * 0.55);
 
-  rate += { fringe: 0.1, rough: 0, bunker: -0.2, deepRough: -0.3 }[lie];
-  rate -= Math.max(0, missDistanceYards - 20) * 0.01;
-  rate -= holeShortGame.roughDifficulty * 0.07;
-  rate -= holeShortGame.collectionDifficulty * 0.05;
+  rate -= Math.max(0, missDistanceYards - 20) * 0.008;
+  rate -= holeShortGame.roughDifficulty * 0.05;
+  rate -= holeShortGame.collectionDifficulty * 0.04;
   if (lie === "bunker") {
-    rate -= holeShortGame.bunkerDifficulty * 0.12;
+    rate -= holeShortGame.bunkerDifficulty * 0.08;
   }
 
-  return Math.min(0.97, Math.max(0.06, rate));
+  return Math.min(0.95, Math.max(0.08, rate));
 }
 
 export function calculateShortGameDispersionFeet(
@@ -93,16 +116,16 @@ export function calculateShortGameDispersionFeet(
 
   const skill = blendedShortGameSkill(golfer, missDistanceYards, lie);
   const distanceScale = Math.sqrt(missDistanceYards / 12);
-  const baseRadialFeet = 3.2 * distanceScale;
 
   const liePenalty = LIE_PENALTY[lie];
-  const roughPenalty = 1 + holeShortGame.roughDifficulty * 0.1;
-  const collectionPenalty = 1 + holeShortGame.collectionDifficulty * 0.08;
-  const pinPenalty = 1 + hole.green.pinDifficulty * 0.1;
+  const roughPenalty = 1 + holeShortGame.roughDifficulty * 0.08;
+  const collectionPenalty = 1 + holeShortGame.collectionDifficulty * 0.06;
+  const pinPenalty = 1 + hole.green.pinDifficulty * 0.08;
 
   return (
-    baseRadialFeet *
-    skillFactor(skill) *
+    ELITE_SHORT_GAME_RADIAL_SIGMA_FEET *
+    distanceScale *
+    dispersionScale(skill) *
     liePenalty *
     roughPenalty *
     collectionPenalty *
@@ -119,10 +142,6 @@ export function calculateGreenContactRate(
   return greenContactRate(golfer, hole, missDistanceYards, lie);
 }
 
-/**
- * Estimates the most likely short game lie from an approach miss. Useful when
- * wiring the approach module into short game.
- */
 export function inferLieFromApproachMiss(
   missDirection: ApproachMissDirection,
   missDistanceYards: number,
@@ -176,21 +195,7 @@ export function simulateShortGameShot(
     };
   }
 
-  const radialSigma = calculateShortGameDispersionFeet(
-    golfer,
-    hole,
-    missDistanceYards,
-    lie,
-  );
-
-  const depthFeet = gaussianRandom(random, 0, radialSigma);
-  const lateralFeet = gaussianRandom(random, 0, radialSigma);
-  const proximityFeet = Math.max(
-    1,
-    Math.sqrt(depthFeet ** 2 + lateralFeet ** 2),
-  );
-
-  return { onGreen: true, proximityFeet };
+  return { onGreen: true, proximityFeet: chipOnGreenProximityFeet(golfer, random) };
 }
 
 export function aggregateShortGameStats(

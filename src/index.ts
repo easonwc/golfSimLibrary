@@ -119,3 +119,14 @@ export type {
   RoundComposerResult,
   RoundTrialOutcome,
 } from "./modules/round-composer/index.js";
+export {
+  CALIBRATION_TOLERANCE,
+  blendedRelativeSkill,
+  dispersionScale,
+  ELITE_SKILL_RATING,
+  PGA_TOUR_ELITE_BENCHMARKS,
+  puttingMakeRateScale,
+  relativeSkill,
+  scaleRateToSkill,
+  scaleYardsToSkill,
+} from "./calibration/index.js";

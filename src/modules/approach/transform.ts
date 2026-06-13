@@ -1,4 +1,8 @@
 import { ValidationError } from "../../errors.js";
+import {
+  blendedRelativeSkill,
+  dispersionScale,
+} from "../../calibration/index.js";
 import type { Golfer, GolferApproachAttributes, Hole } from "../../types/index.js";
 import { gaussianRandom, type RandomSource } from "../../utils/random.js";
 import type {
@@ -11,12 +15,20 @@ import type {
 
 const YARDS_TO_FEET = 3;
 
+/** Elite tour approach dispersion at ~150 yards (yards) for green-hit detection. */
+const ELITE_APPROACH_DEPTH_SIGMA_YARDS = 7.4;
+const ELITE_APPROACH_LATERAL_SIGMA_YARDS = 8.6;
+
+/** Elite proximity to pin when the green is hit (~14 ft average). */
+const ELITE_ON_GREEN_PROXIMITY_SIGMA_FEET = 8.8;
+
 function requireApproach(golfer: Golfer): GolferApproachAttributes {
   if (!golfer.approach) {
     throw new ValidationError("golfer.approach must be an object");
   }
   return golfer.approach;
 }
+
 const STANDARD_APPROACH_DISTANCES: Record<3 | 4 | 5, number> = {
   3: 0,
   4: 165,
@@ -27,10 +39,6 @@ const STANDARD_HOLE_LENGTHS: Record<3 | 4 | 5, number> = {
   4: 420,
   5: 540,
 };
-
-function skillFactor(skill: number): number {
-  return 1 - (skill / 100) * 0.55;
-}
 
 export function greenRadiusFeet(hole: Hole): number {
   return Math.sqrt(hole.green.sizeSqFt / Math.PI);
@@ -65,20 +73,30 @@ export function calculateDispersionSigmas(
   }
 
   const distanceScale = Math.sqrt(approachDistanceYards / 150);
-
-  const depthBase = 6.5 * distanceScale;
-  const lateralBase = 7.5 * distanceScale;
-
-  const depthSkill = skillFactor(approach.distanceControl);
-  const lateralSkill =
-    (skillFactor(approach.accuracy) + skillFactor(approach.dispersion)) / 2;
+  const depthSkill = blendedRelativeSkill(
+    approach.distanceControl,
+    approach.approach,
+  );
+  const lateralSkill = blendedRelativeSkill(
+    approach.accuracy,
+    approach.dispersion,
+    approach.approach,
+  );
 
   const landingPenalty =
     1 + holeApproach.landingDifficulty * 0.18 + holeApproach.elevationPenalty * 0.1;
 
   return {
-    depthYards: depthBase * depthSkill * landingPenalty,
-    lateralYards: lateralBase * lateralSkill * landingPenalty,
+    depthYards:
+      ELITE_APPROACH_DEPTH_SIGMA_YARDS *
+      distanceScale *
+      dispersionScale(depthSkill * 99) *
+      landingPenalty,
+    lateralYards:
+      ELITE_APPROACH_LATERAL_SIGMA_YARDS *
+      distanceScale *
+      dispersionScale(lateralSkill * 99) *
+      landingPenalty,
   };
 }
 
@@ -94,6 +112,21 @@ function classifyMiss(
   }
 
   return lateralErrorYards < 0 ? "missLeft" : "missRight";
+}
+
+function onGreenProximityFeet(golfer: Golfer, random: RandomSource): number {
+  const approach = requireApproach(golfer);
+  const skill = blendedRelativeSkill(
+    approach.approach,
+    approach.accuracy,
+    approach.dispersion,
+    approach.distanceControl,
+  );
+  const sigma =
+    ELITE_ON_GREEN_PROXIMITY_SIGMA_FEET * dispersionScale(skill * 99);
+  const depthFeet = gaussianRandom(random, 0, sigma);
+  const lateralFeet = gaussianRandom(random, 0, sigma);
+  return Math.max(1, Math.sqrt(depthFeet ** 2 + lateralFeet ** 2));
 }
 
 export function simulateApproachShot(
@@ -116,7 +149,7 @@ export function simulateApproachShot(
   if (onGreen) {
     return {
       onGreen: true,
-      proximityFeet,
+      proximityFeet: onGreenProximityFeet(golfer, random),
       depthErrorYards,
       lateralErrorYards,
     };

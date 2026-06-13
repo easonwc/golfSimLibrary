@@ -1,4 +1,10 @@
 import { ValidationError } from "../../errors.js";
+import {
+  blendedRelativeSkill,
+  dispersionScale,
+  PGA_TOUR_ELITE_BENCHMARKS,
+  scaleYardsToSkill,
+} from "../../calibration/index.js";
 import type {
   Golfer,
   GolferTeeShotAttributes,
@@ -14,6 +20,10 @@ import type {
 
 const MIN_REMAINING_DISTANCE_YARDS = 30;
 
+/** Elite tour driver lateral dispersion (yards, full-width sigma). */
+const ELITE_TEE_LATERAL_SIGMA_YARDS = 20.5;
+const ELITE_TEE_DISTANCE_SIGMA_YARDS = 10;
+
 function requireTeeShot(golfer: Golfer): GolferTeeShotAttributes {
   if (!golfer.teeShot) {
     throw new ValidationError("golfer.teeShot must be an object");
@@ -21,22 +31,20 @@ function requireTeeShot(golfer: Golfer): GolferTeeShotAttributes {
   return golfer.teeShot;
 }
 
-function skillFactor(skill: number): number {
-  return 1 - (skill / 100) * 0.55;
-}
-
 export function expectedDrivingDistanceYards(golfer: Golfer): number {
   const teeShot = requireTeeShot(golfer);
-  const blendedDistance =
-    teeShot.distance * 0.7 + teeShot.driving * 0.3;
-  return 175 + (blendedDistance / 100) * 125;
+  const blendedDistance = teeShot.distance * 0.7 + teeShot.driving * 0.3;
+  return scaleYardsToSkill(
+    blendedDistance,
+    PGA_TOUR_ELITE_BENCHMARKS.drivingDistanceYards,
+    210,
+  );
 }
 
 export function calculateDrivingDistanceSigma(golfer: Golfer): number {
   const teeShot = requireTeeShot(golfer);
-  const dispersionSkill =
-    (skillFactor(teeShot.dispersion) + skillFactor(teeShot.distance)) / 2;
-  return 8 + dispersionSkill * 14;
+  const skill = blendedRelativeSkill(teeShot.dispersion, teeShot.distance);
+  return ELITE_TEE_DISTANCE_SIGMA_YARDS * dispersionScale(skill * 99);
 }
 
 export function fairwayHalfWidthYards(hole: Hole): number {
@@ -58,11 +66,14 @@ export function calculateLateralDispersionYards(
     throw new ValidationError("hole.teeShot must be an object");
   }
 
-  const accuracySkill =
-    (skillFactor(teeShot.accuracy) + skillFactor(teeShot.dispersion)) / 2;
+  const skill = blendedRelativeSkill(teeShot.accuracy, teeShot.dispersion);
   const narrowPenalty = 1.35 - holeTeeShot.fairwayWidth * 0.35;
 
-  return (10 + accuracySkill * 16) * narrowPenalty;
+  return (
+    ELITE_TEE_LATERAL_SIGMA_YARDS *
+    dispersionScale(skill * 99) *
+    narrowPenalty
+  );
 }
 
 function classifyLie(

@@ -178,6 +178,22 @@ Each module also exports `*Validated` variants (skip re-validation), single-shot
 | `MIN_HOLE_COMPOSER_GOLFERS` | 1 |
 | `MAX_HOLE_COMPOSER_GOLFERS` | 4 |
 
+## Skill calibration
+
+All golfer attributes use a **0–100 scale** where **99 represents elite PGA Tour performance** in that category. Lower ratings scale proportionally from that anchor.
+
+At skill 99 across all attributes, a full round on the sample tour-style course targets:
+
+| Stat | Target |
+|------|--------|
+| Putts per round | ~27 |
+| Greens in regulation | ~70% |
+| Fairways hit (par 4/5) | ~65% |
+| Score vs par 72 | ~−3 |
+| Scrambling (when GIR missed) | ~62% |
+
+Calibration helpers and benchmarks live in `golf-sim-library` exports (`ELITE_SKILL_RATING`, `PGA_TOUR_ELITE_BENCHMARKS`, `dispersionScale`, etc.). Run `node scripts/calibrate-baseline.mjs` to spot-check elite vs mid-skill output.
+
 ## Input requirements
 
 ### Hole composer / round composer

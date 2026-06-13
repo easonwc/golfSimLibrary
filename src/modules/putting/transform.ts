@@ -1,4 +1,5 @@
 import { ValidationError } from "../../errors.js";
+import { dispersionScale, puttingMakeRateScale } from "../../calibration/index.js";
 import type { Golfer, GolferPuttingAttributes, Hole } from "../../types/index.js";
 import type { PuttingDistribution, PuttingStats, RandomSource } from "./types.js";
 
@@ -9,7 +10,7 @@ function requirePutting(golfer: Golfer): GolferPuttingAttributes {
   return golfer.putting;
 }
 
-/** PGA Tour baseline first-putt make rate by distance (feet). */
+/** PGA Tour baseline first-putt make rate by distance (feet) at skill 99. */
 const TOUR_MAKE_RATE_BY_DISTANCE: ReadonlyArray<[number, number]> = [
   [2, 0.99],
   [3, 0.96],
@@ -48,16 +49,17 @@ function interpolateTourMakeRate(distanceFeet: number): number {
   return table[table.length - 1][1];
 }
 
-function skillMultiplier(skill: number, distanceFeet: number): number {
-  const normalized = (skill - 50) / 50;
-  const shortWeight = Math.max(0, 1 - distanceFeet / 20);
-  const lagWeight = Math.min(1, Math.max(0, (distanceFeet - 10) / 30));
-
-  const shortBonus = normalized * 0.35 * shortWeight;
-  const lagBonus = normalized * 0.25 * lagWeight;
-  const overallBonus = normalized * 0.2 * (1 - shortWeight - lagWeight);
-
-  return 1 + shortBonus + lagBonus + overallBonus;
+function blendedPuttingSkill(
+  putting: GolferPuttingAttributes,
+  distanceFeet: number,
+): number {
+  if (distanceFeet <= 6) {
+    return putting.putting * 0.35 + putting.shortPutting * 0.65;
+  }
+  if (distanceFeet >= 20) {
+    return putting.putting * 0.35 + putting.lagPutting * 0.65;
+  }
+  return putting.putting;
 }
 
 function greenDifficultyPenalty(hole: Hole): number {
@@ -84,20 +86,10 @@ export function makeRateAtDistance(
 ): number {
   const effectiveDistance = effectivePuttDistance(distanceFeet, hole);
   const tourRate = interpolateTourMakeRate(effectiveDistance);
-
   const putting = requirePutting(golfer);
-  const puttingSkill = putting.putting;
-  const shortSkill = putting.shortPutting;
-  const lagSkill = putting.lagPutting;
+  const skill = blendedPuttingSkill(putting, distanceFeet);
 
-  const blendedSkill =
-    distanceFeet <= 6
-      ? puttingSkill * 0.4 + shortSkill * 0.6
-      : distanceFeet >= 20
-        ? puttingSkill * 0.4 + lagSkill * 0.6
-        : puttingSkill;
-
-  let rate = tourRate * skillMultiplier(blendedSkill, distanceFeet);
+  let rate = tourRate * puttingMakeRateScale(skill);
   rate *= 1 - greenDifficultyPenalty(hole);
   return Math.min(0.995, Math.max(0.005, rate));
 }
@@ -134,15 +126,16 @@ function leaveDistanceAfterMiss(
   hole: Hole,
   random: RandomSource,
 ): number {
-  const lagSkill = requirePutting(golfer).lagPutting / 100;
+  const lagSkill = requirePutting(golfer).lagPutting;
+  const lagScale = dispersionScale(lagSkill);
   const speedFactor = hole.green.speed / 10;
 
   if (attemptDistanceFeet <= 6) {
-    const baseLeave = 1.5 + random.next() * 2;
-    return baseLeave * (1.4 - lagSkill * 0.4);
+    const baseLeave = 1.2 + random.next() * 1.6;
+    return baseLeave * (0.75 + lagScale * 0.35);
   }
 
-  const targetLeaveRatio = 0.06 + (1 - lagSkill) * 0.08;
+  const targetLeaveRatio = 0.032 + lagScale * 0.038;
   const noise = 0.7 + random.next() * 0.6;
   const leave = attemptDistanceFeet * targetLeaveRatio * noise * speedFactor;
   return Math.max(1.5, Math.min(leave, attemptDistanceFeet * 0.5));
