@@ -1,5 +1,23 @@
 import type { CompleteGolfer, CompleteHole, Course } from "../types/index.js";
 
+export const sampleTourProClubs = {
+  driver: 92,
+  wood: 88,
+  longIron: 90,
+  midIron: 91,
+  shortIron: 92,
+  wedge: 94,
+} as const;
+
+export const sampleHighHandicapClubs = {
+  driver: 32,
+  wood: 28,
+  longIron: 26,
+  midIron: 28,
+  shortIron: 30,
+  wedge: 34,
+} as const;
+
 export const sampleHoleAttributes = {
   green: {
     sizeSqFt: 5_200,
@@ -45,6 +63,7 @@ export const sampleTourPro: CompleteGolfer = {
     accuracy: 85,
     dispersion: 84,
   },
+  clubs: { ...sampleTourProClubs },
 };
 
 export const sampleHighHandicap: CompleteGolfer = {
@@ -69,6 +88,7 @@ export const sampleHighHandicap: CompleteGolfer = {
     accuracy: 30,
     dispersion: 28,
   },
+  clubs: { ...sampleHighHandicapClubs },
 };
 
 export function createSamplePar4Hole(

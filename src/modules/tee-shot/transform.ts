@@ -1,4 +1,5 @@
 import { ValidationError } from "../../errors.js";
+import { resolveClubAttributes } from "../../clubs/index.js";
 import {
   blendedRelativeSkill,
   dispersionScale,
@@ -33,7 +34,12 @@ function requireTeeShot(golfer: Golfer): GolferTeeShotAttributes {
 
 export function expectedDrivingDistanceYards(golfer: Golfer): number {
   const teeShot = requireTeeShot(golfer);
-  const blendedDistance = teeShot.distance * 0.7 + teeShot.driving * 0.3;
+  const clubs = resolveClubAttributes(golfer);
+  const blendedDistance = blendedRelativeSkill(
+    clubs.driver,
+    teeShot.distance,
+    teeShot.driving,
+  ) * 99;
   return scaleYardsToSkill(
     blendedDistance,
     PGA_TOUR_ELITE_BENCHMARKS.drivingDistanceYards,
@@ -43,7 +49,12 @@ export function expectedDrivingDistanceYards(golfer: Golfer): number {
 
 export function calculateDrivingDistanceSigma(golfer: Golfer): number {
   const teeShot = requireTeeShot(golfer);
-  const skill = blendedRelativeSkill(teeShot.dispersion, teeShot.distance);
+  const clubs = resolveClubAttributes(golfer);
+  const skill = blendedRelativeSkill(
+    clubs.driver,
+    teeShot.dispersion,
+    teeShot.distance,
+  );
   return ELITE_TEE_DISTANCE_SIGMA_YARDS * dispersionScale(skill * 99);
 }
 
@@ -61,12 +72,17 @@ export function calculateLateralDispersionYards(
   hole: Hole,
 ): number {
   const teeShot = requireTeeShot(golfer);
+  const clubs = resolveClubAttributes(golfer);
   const holeTeeShot = hole.teeShot;
   if (!holeTeeShot) {
     throw new ValidationError("hole.teeShot must be an object");
   }
 
-  const skill = blendedRelativeSkill(teeShot.accuracy, teeShot.dispersion);
+  const skill = blendedRelativeSkill(
+    clubs.driver,
+    teeShot.accuracy,
+    teeShot.dispersion,
+  );
   const narrowPenalty = 1.35 - holeTeeShot.fairwayWidth * 0.35;
 
   return (

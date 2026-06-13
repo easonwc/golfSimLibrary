@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createUniformClubAttributes } from "../src/clubs/index.js";
 import { ValidationError } from "../src/errors.js";
 import type { CompleteGolfer, CompleteHole, Course } from "../src/types/index.js";
 import { ROUND_HOLE_COUNT } from "../src/types/index.js";
@@ -29,6 +30,7 @@ const baseGolferAttributes = {
     accuracy: 85,
     dispersion: 84,
   },
+  clubs: createUniformClubAttributes(90),
 };
 
 const tourPro: CompleteGolfer = {
@@ -59,6 +61,7 @@ const highHandicap: CompleteGolfer = {
     accuracy: 30,
     dispersion: 28,
   },
+  clubs: createUniformClubAttributes(30),
 };
 
 const holeTemplate: Omit<CompleteHole, "id" | "number" | "par" | "lengthYards"> = {
@@ -161,6 +164,7 @@ describe("round composer validation", () => {
             putting: tourPro.putting,
             approach: tourPro.approach,
             shortGame: tourPro.shortGame,
+            clubs: tourPro.clubs,
           },
         ],
       }),

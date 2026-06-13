@@ -4,6 +4,7 @@ export type {
   Course,
   Golfer,
   GolferApproachAttributes,
+  GolferClubAttributes,
   GolferPuttingAttributes,
   GolferShortGameAttributes,
   GolferTeeShotAttributes,
@@ -12,6 +13,7 @@ export type {
   HoleGreenAttributes,
   HoleShortGameAttributes,
   HoleTeeShotAttributes,
+  ApproachClubType,
   ShortGameLie,
   TeeShotLie,
 } from "./types/index.js";
@@ -119,6 +121,13 @@ export type {
   RoundComposerResult,
   RoundTrialOutcome,
 } from "./modules/round-composer/index.js";
+export {
+  approachClubSkill,
+  clubWeightsForApproachDistance,
+  createUniformClubAttributes,
+  deriveClubAttributes,
+  resolveClubAttributes,
+} from "./clubs/index.js";
 export {
   CALIBRATION_TOLERANCE,
   blendedRelativeSkill,

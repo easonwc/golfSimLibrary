@@ -1,4 +1,5 @@
 import { ValidationError } from "../../errors.js";
+import { resolveClubAttributes } from "../../clubs/index.js";
 import {
   dispersionScale,
   scaleRateToSkill,
@@ -62,20 +63,30 @@ function blendedShortGameSkill(
   lie: ShortGameLie,
 ): number {
   const shortGame = requireShortGame(golfer);
+  const wedge = resolveClubAttributes(golfer).wedge;
 
   if (lie === "bunker") {
-    return shortGame.bunkerPlay * 0.65 + shortGame.shortGame * 0.35;
+    return (
+      shortGame.bunkerPlay * 0.5 + shortGame.shortGame * 0.25 + wedge * 0.25
+    );
   }
 
   if (missDistanceYards <= 15) {
-    return shortGame.chipping * 0.6 + shortGame.shortGame * 0.4;
+    return shortGame.chipping * 0.45 + shortGame.shortGame * 0.25 + wedge * 0.3;
   }
 
   if (missDistanceYards >= 25) {
-    return shortGame.pitching * 0.55 + shortGame.shortGame * 0.45;
+    return (
+      shortGame.pitching * 0.4 + shortGame.shortGame * 0.25 + wedge * 0.35
+    );
   }
 
-  return shortGame.shortGame * 0.5 + shortGame.chipping * 0.3 + shortGame.pitching * 0.2;
+  return (
+    shortGame.shortGame * 0.3 +
+    shortGame.chipping * 0.25 +
+    shortGame.pitching * 0.15 +
+    wedge * 0.3
+  );
 }
 
 function greenContactRate(

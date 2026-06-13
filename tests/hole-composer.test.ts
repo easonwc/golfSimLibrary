@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createUniformClubAttributes } from "../src/clubs/index.js";
 import { ValidationError } from "../src/errors.js";
 import type { CompleteGolfer, CompleteHole } from "../src/types/index.js";
 import {
@@ -27,6 +28,7 @@ const baseGolferAttributes = {
     accuracy: 85,
     dispersion: 84,
   },
+  clubs: createUniformClubAttributes(90),
 };
 
 const tourPro: CompleteGolfer = {
@@ -57,6 +59,14 @@ const steadyAmateur: CompleteGolfer = {
     accuracy: 62,
     dispersion: 55,
   },
+  clubs: {
+    driver: 62,
+    wood: 55,
+    longIron: 52,
+    midIron: 58,
+    shortIron: 60,
+    wedge: 65,
+  },
 };
 
 const highHandicap: CompleteGolfer = {
@@ -81,6 +91,7 @@ const highHandicap: CompleteGolfer = {
     accuracy: 30,
     dispersion: 28,
   },
+  clubs: createUniformClubAttributes(30),
 };
 
 const par4Hole: CompleteHole = {
@@ -205,6 +216,7 @@ describe("hole composer validation", () => {
             putting: tourPro.putting,
             approach: tourPro.approach,
             shortGame: tourPro.shortGame,
+            clubs: tourPro.clubs,
           },
         ],
       }),
@@ -229,6 +241,23 @@ describe("hole composer validation", () => {
     ).toThrow(/hole.teeShot must be an object/);
   });
 
+  it("requires clubs on golfers", () => {
+    expect(() =>
+      simulateHole({
+        hole: par4Hole,
+        golfers: [
+          {
+            id: "no-clubs",
+            putting: tourPro.putting,
+            approach: tourPro.approach,
+            shortGame: tourPro.shortGame,
+            teeShot: tourPro.teeShot,
+          },
+        ],
+      }),
+    ).toThrow(/golfers\[0\].clubs must be an object/);
+  });
+
   it("does not require teeShot on par 3 hole or golfers", () => {
     expect(() =>
       simulateHole({
@@ -239,6 +268,7 @@ describe("hole composer validation", () => {
             putting: tourPro.putting,
             approach: tourPro.approach,
             shortGame: tourPro.shortGame,
+            clubs: tourPro.clubs,
           },
         ],
         trials: 100,
@@ -381,6 +411,7 @@ describe("simulateHole", () => {
           putting: tourPro.putting,
           approach: tourPro.approach,
           shortGame: tourPro.shortGame,
+          clubs: tourPro.clubs,
         },
       ],
       trials: 1_000,

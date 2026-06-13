@@ -1,4 +1,6 @@
 import type { CompleteGolfer, CompleteHole } from "../../types/index.js";
+import { dispersionScale } from "../../calibration/index.js";
+import { resolveClubAttributes } from "../../clubs/index.js";
 import { gaussianRandom, type RandomSource } from "../../utils/random.js";
 import { simulateApproachShot } from "../approach/transform.js";
 import { simulatePuttsOnGreen } from "../putting/transform.js";
@@ -23,6 +25,7 @@ function regulationStrokesToGreen(par: 3 | 4 | 5): number {
 
 function applyPar5LayupIfNeeded(
   hole: CompleteHole,
+  golfer: CompleteGolfer,
   remainingDistanceYards: number,
   random: RandomSource,
 ): { remainingDistanceYards: number; strokesAdded: number } {
@@ -30,8 +33,10 @@ function applyPar5LayupIfNeeded(
     return { remainingDistanceYards, strokesAdded: 0 };
   }
 
+  const woodSkill = resolveClubAttributes(golfer).wood;
+  const layupSigma = 12 * dispersionScale(woodSkill);
   const layupAdvance =
-    PAR5_LAYUP_DISTANCE_YARDS + gaussianRandom(random, 0, 12);
+    PAR5_LAYUP_DISTANCE_YARDS + gaussianRandom(random, 0, layupSigma);
 
   return {
     remainingDistanceYards: Math.max(
@@ -69,7 +74,12 @@ function resolvePrePuttingState(
     drivingDistanceYards = teeOutcome.drivingDistanceYards;
     remainingDistanceYards = teeOutcome.remainingDistanceYards;
 
-    const layup = applyPar5LayupIfNeeded(hole, remainingDistanceYards, random);
+    const layup = applyPar5LayupIfNeeded(
+      hole,
+      golfer,
+      remainingDistanceYards,
+      random,
+    );
     strokes += layup.strokesAdded;
     remainingDistanceYards = layup.remainingDistanceYards;
   }

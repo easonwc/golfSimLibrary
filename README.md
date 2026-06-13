@@ -48,7 +48,7 @@ const result = simulateHole({
       putting: { putting: 72, shortPutting: 70, lagPutting: 74 },
       approach: { approach: 78, accuracy: 76, distanceControl: 80, dispersion: 74 },
       shortGame: { shortGame: 75, chipping: 78, bunkerPlay: 70, pitching: 74 },
-      teeShot: { driving: 76, distance: 80, accuracy: 72, dispersion: 70 },
+      clubs: { driver: 76, wood: 74, longIron: 78, midIron: 79, shortIron: 80, wedge: 82 },
     },
   ],
   trials: 5000,
@@ -140,6 +140,9 @@ All ability ratings use a **0–100 scale** (higher is better). Hole difficulty 
 | `approach` | `approach`, `accuracy`, `distanceControl`, `dispersion` |
 | `shortGame` | `shortGame`, `chipping`, `bunkerPlay`, `pitching` |
 | `teeShot` | `driving`, `distance`, `accuracy`, `dispersion` |
+| `clubs` | `driver`, `wood`, `longIron`, `midIron`, `shortIron`, `wedge` |
+
+Category attributes (`approach`, `teeShot`, etc.) describe overall technique; **club ratings** control execution by club type and approach yardage. At 185 yards the sim blends mid/long iron skills; inside 115 yards it leans on wedges.
 
 ### Hole attributes
 
@@ -198,7 +201,7 @@ Calibration helpers and benchmarks live in `golf-sim-library` exports (`ELITE_SK
 
 ### Hole composer / round composer
 
-- **Golfers:** 1–4, unique `id`, all skill groups populated
+- **Golfers:** 1–4, unique `id`, all skill groups populated (`putting`, `approach`, `shortGame`, `clubs`; plus `teeShot` when needed)
 - **`teeShot`:** required on golfers when the course/hole includes par 4 or par 5 holes
 - **Round composer:** exactly 18 holes, unique hole `id`s, all hole attribute groups populated
 

@@ -7,6 +7,7 @@ import type {
   CompleteGolfer,
   CompleteHole,
   GolferApproachAttributes,
+  GolferClubAttributes,
   GolferPuttingAttributes,
   GolferShortGameAttributes,
   GolferTeeShotAttributes,
@@ -79,6 +80,25 @@ function validateShortGameAttributes(
     chipping: validateAbility(s.chipping, `${prefix}.chipping`),
     bunkerPlay: validateAbility(s.bunkerPlay, `${prefix}.bunkerPlay`),
     pitching: validateAbility(s.pitching, `${prefix}.pitching`),
+  };
+}
+
+function validateClubAttributes(
+  clubs: unknown,
+  prefix: string,
+): GolferClubAttributes {
+  if (clubs === null || typeof clubs !== "object") {
+    throw new ValidationError(`${prefix} must be an object`);
+  }
+
+  const c = clubs as Record<string, unknown>;
+  return {
+    driver: validateAbility(c.driver, `${prefix}.driver`),
+    wood: validateAbility(c.wood, `${prefix}.wood`),
+    longIron: validateAbility(c.longIron, `${prefix}.longIron`),
+    midIron: validateAbility(c.midIron, `${prefix}.midIron`),
+    shortIron: validateAbility(c.shortIron, `${prefix}.shortIron`),
+    wedge: validateAbility(c.wedge, `${prefix}.wedge`),
   };
 }
 
@@ -224,6 +244,7 @@ export function validateCompleteGolfer(
       g.shortGame,
       `${prefix}.shortGame`,
     ),
+    clubs: validateClubAttributes(g.clubs, `${prefix}.clubs`),
   };
 
   if (requiresTeeShot) {

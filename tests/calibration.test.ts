@@ -4,6 +4,7 @@ import {
   ELITE_SKILL_RATING,
   PGA_TOUR_ELITE_BENCHMARKS,
 } from "../src/calibration/index.js";
+import { createUniformClubAttributes } from "../src/clubs/index.js";
 import { createSampleCourse } from "../src/fixtures/index.js";
 import type { CompleteGolfer } from "../src/types/index.js";
 import { simulateRound } from "../src/modules/round-composer/index.js";
@@ -36,6 +37,7 @@ function createEliteGolfer(): CompleteGolfer {
       accuracy: rating,
       dispersion: rating,
     },
+    clubs: createUniformClubAttributes(rating),
   };
 }
 

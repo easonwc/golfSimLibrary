@@ -1,4 +1,5 @@
 import { ValidationError } from "../../errors.js";
+import { approachClubSkill } from "../../clubs/index.js";
 import {
   blendedRelativeSkill,
   dispersionScale,
@@ -73,11 +74,14 @@ export function calculateDispersionSigmas(
   }
 
   const distanceScale = Math.sqrt(approachDistanceYards / 150);
+  const clubSkill = approachClubSkill(golfer, approachDistanceYards);
   const depthSkill = blendedRelativeSkill(
+    clubSkill,
     approach.distanceControl,
     approach.approach,
   );
   const lateralSkill = blendedRelativeSkill(
+    clubSkill,
     approach.accuracy,
     approach.dispersion,
     approach.approach,
@@ -114,9 +118,15 @@ function classifyMiss(
   return lateralErrorYards < 0 ? "missLeft" : "missRight";
 }
 
-function onGreenProximityFeet(golfer: Golfer, random: RandomSource): number {
+function onGreenProximityFeet(
+  golfer: Golfer,
+  approachDistanceYards: number,
+  random: RandomSource,
+): number {
   const approach = requireApproach(golfer);
+  const clubSkill = approachClubSkill(golfer, approachDistanceYards);
   const skill = blendedRelativeSkill(
+    clubSkill,
     approach.approach,
     approach.accuracy,
     approach.dispersion,
@@ -149,7 +159,11 @@ export function simulateApproachShot(
   if (onGreen) {
     return {
       onGreen: true,
-      proximityFeet: onGreenProximityFeet(golfer, random),
+      proximityFeet: onGreenProximityFeet(
+        golfer,
+        approachDistanceYards,
+        random,
+      ),
       depthErrorYards,
       lateralErrorYards,
     };

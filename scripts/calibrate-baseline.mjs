@@ -1,4 +1,4 @@
-import { simulateRound } from "../dist/index.js";
+import { simulateRound, createUniformClubAttributes } from "../dist/index.js";
 import { createSampleCourse } from "../dist/fixtures/index.js";
 
 const elite99 = {
@@ -8,6 +8,7 @@ const elite99 = {
   approach: { approach: 99, accuracy: 99, distanceControl: 99, dispersion: 99 },
   shortGame: { shortGame: 99, chipping: 99, bunkerPlay: 99, pitching: 99 },
   teeShot: { driving: 99, distance: 99, accuracy: 99, dispersion: 99 },
+  clubs: createUniformClubAttributes(99),
 };
 
 const mid50 = {
@@ -17,6 +18,7 @@ const mid50 = {
   approach: { approach: 50, accuracy: 50, distanceControl: 50, dispersion: 50 },
   shortGame: { shortGame: 50, chipping: 50, bunkerPlay: 50, pitching: 50 },
   teeShot: { driving: 50, distance: 50, accuracy: 50, dispersion: 50 },
+  clubs: createUniformClubAttributes(50),
 };
 
 const course = createSampleCourse();

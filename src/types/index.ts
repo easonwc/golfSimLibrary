@@ -42,6 +42,29 @@ export interface GolferTeeShotAttributes {
   dispersion: AbilityRating;
 }
 
+/** Per-club skill ratings (0–100). Higher is better; 99 = elite tour level. */
+export interface GolferClubAttributes {
+  /** Driver off the tee on par 4/5 (0–100). */
+  driver: AbilityRating;
+  /** Fairway woods and hybrids for long shots and par-5 layups (0–100). */
+  wood: AbilityRating;
+  /** Long irons (~4–5i), full shots from ~180 yards (0–100). */
+  longIron: AbilityRating;
+  /** Mid irons (~6–8i), ~130–179 yards (0–100). */
+  midIron: AbilityRating;
+  /** Short irons (~9i–PW), ~100–129 yards (0–100). */
+  shortIron: AbilityRating;
+  /** Wedges for short approaches and greenside shots (0–100). */
+  wedge: AbilityRating;
+}
+
+export type ApproachClubType =
+  | "wood"
+  | "longIron"
+  | "midIron"
+  | "shortIron"
+  | "wedge";
+
 export interface Golfer {
   id: string;
   name?: string;
@@ -49,6 +72,8 @@ export interface Golfer {
   approach?: GolferApproachAttributes;
   shortGame?: GolferShortGameAttributes;
   teeShot?: GolferTeeShotAttributes;
+  /** Per-club execution skill; required for full-hole simulation. */
+  clubs?: GolferClubAttributes;
 }
 
 export interface HoleGreenAttributes {
@@ -108,6 +133,7 @@ export interface CompleteGolfer extends Golfer {
   putting: GolferPuttingAttributes;
   approach: GolferApproachAttributes;
   shortGame: GolferShortGameAttributes;
+  clubs: GolferClubAttributes;
   teeShot?: GolferTeeShotAttributes;
 }
 
