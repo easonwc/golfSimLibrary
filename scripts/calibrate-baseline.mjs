@@ -29,6 +29,12 @@ for (const golfer of [elite99, mid50]) {
   console.log("  Putts:", s.averagePuttsPerRound.toFixed(2));
   console.log("  GIR:", (s.greenInRegulationRate * 100).toFixed(1) + "%");
   console.log("  FW:", s.fairwayHitRate === null ? "n/a" : (s.fairwayHitRate * 100).toFixed(1) + "%");
+  console.log(
+    "  Drive:",
+    s.averageDrivingDistanceYards === null
+      ? "n/a"
+      : s.averageDrivingDistanceYards.toFixed(1) + " yds",
+  );
   console.log("  Scramble:", (s.scrambleRate * 100).toFixed(1) + "% of holes");
   console.log(
     "  Scramble (missed GIR):",

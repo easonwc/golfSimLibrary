@@ -260,6 +260,7 @@ describe("simulateHoleTrial", () => {
     expect(outcome.putts).toBeGreaterThanOrEqual(1);
     expect(outcome.strokesToGreen).toBeGreaterThanOrEqual(2);
     expect(outcome.fairwayHit).toEqual(expect.any(Boolean));
+    expect(outcome.drivingDistanceYards).toBeGreaterThan(140);
     expect(outcome.scoreRelativeToPar).toBe(
       outcome.totalStrokes - par4Hole.par,
     );
@@ -272,6 +273,7 @@ describe("simulateHoleTrial", () => {
       new SeededRandom(7),
     );
     expect(outcome.fairwayHit).toBeNull();
+    expect(outcome.drivingDistanceYards).toBeNull();
     expect(outcome.strokesToGreen).toBeGreaterThanOrEqual(1);
     expect(outcome.strokesToGreen).toBeLessThanOrEqual(3);
   });

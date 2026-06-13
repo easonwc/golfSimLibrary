@@ -193,6 +193,8 @@ describe("simulateRoundTrial", () => {
     );
     expect(outcome.greenInRegulationCount).toBeGreaterThanOrEqual(0);
     expect(outcome.greenInRegulationCount).toBeLessThanOrEqual(18);
+    expect(outcome.drivingDistanceTrials).toBe(14);
+    expect(outcome.drivingDistanceYardsTotal).toBeGreaterThan(0);
   });
 });
 
@@ -218,6 +220,8 @@ describe("simulateRound", () => {
         stats.expectedScore - stats.coursePar,
       );
       expect(stats.averagePuttsPerRound).toBeGreaterThan(18);
+      expect(stats.averageDrivingDistanceYards).toBeGreaterThan(200);
+      expect(stats.averageDrivingDistanceYards).toBeLessThan(350);
       expect(stats.greenInRegulationRate).toBeGreaterThan(0);
       expect(stats.greenInRegulationRate).toBeLessThan(1);
 
@@ -258,6 +262,9 @@ describe("simulateRound", () => {
     );
     expect(proStats.averagePuttsPerRound).toBeLessThan(
       hhStats.averagePuttsPerRound,
+    );
+    expect(proStats.averageDrivingDistanceYards).toBeGreaterThan(
+      hhStats.averageDrivingDistanceYards!,
     );
   });
 

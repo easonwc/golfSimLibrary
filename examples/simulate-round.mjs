@@ -26,6 +26,9 @@ for (const stats of result.golferStats) {
   console.log(`  GIR:            ${pct(stats.greenInRegulationRate)}`);
   console.log(`  Fairways:       ${stats.fairwayHitRate === null ? "n/a" : pct(stats.fairwayHitRate)}`);
   console.log(`  Putts/round:    ${stats.averagePuttsPerRound.toFixed(1)}`);
+  console.log(
+    `  Driving avg:    ${stats.averageDrivingDistanceYards === null ? "n/a" : stats.averageDrivingDistanceYards.toFixed(1) + " yds"}`,
+  );
   console.log(`  Scrambling:     ${pct(stats.scrambleRate)}`);
   console.log(
     `  Score mix:      ${pct(stats.scoreDistribution.birdie)} birdie / ${pct(stats.scoreDistribution.par)} par / ${pct(stats.scoreDistribution.bogey)} bogey`,

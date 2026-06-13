@@ -232,7 +232,7 @@ try {
 
 ### `GolferRoundStats`
 
-All hole-level metrics aggregated across 18 holes, plus `holeByHoleExpectedScores` (length 18), `averagePuttsPerRound`, and round-level `scoreDistribution`.
+All hole-level metrics aggregated across 18 holes, plus `holeByHoleExpectedScores` (length 18), `averagePuttsPerRound`, `averageDrivingDistanceYards` (par 4/5 tee shots only), and round-level `scoreDistribution`.
 
 ## Package exports
 

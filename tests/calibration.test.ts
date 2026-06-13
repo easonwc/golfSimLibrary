@@ -90,5 +90,13 @@ describe("PGA Tour elite calibration (skill 99)", () => {
     expect(scrambleWhenMissedGir).toBeLessThanOrEqual(
       benchmarks.scrambleRate + tolerance.scrambleRateWhenMissedGir,
     );
+
+    expect(stats.averageDrivingDistanceYards).not.toBeNull();
+    expect(stats.averageDrivingDistanceYards!).toBeGreaterThanOrEqual(
+      benchmarks.drivingDistanceYards - tolerance.drivingDistanceYards,
+    );
+    expect(stats.averageDrivingDistanceYards!).toBeLessThanOrEqual(
+      benchmarks.drivingDistanceYards + tolerance.drivingDistanceYards,
+    );
   });
 });

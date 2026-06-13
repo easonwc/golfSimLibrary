@@ -25,4 +25,6 @@ export const CALIBRATION_TOLERANCE = {
   scoreRelativeToPar72: 2.5,
   /** Par-or-better save rate when the green is missed in regulation. */
   scrambleRateWhenMissedGir: 0.08,
+  /** Average yards per drive on par 4/5 holes. */
+  drivingDistanceYards: 10,
 } as const;

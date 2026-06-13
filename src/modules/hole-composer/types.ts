@@ -48,6 +48,8 @@ export interface HoleTrialOutcome {
   totalStrokes: number;
   putts: number;
   strokesToGreen: number;
+  /** Yards off the tee on par 4/5; null on par 3. */
+  drivingDistanceYards: number | null;
   fairwayHit: boolean | null;
   greenInRegulation: boolean;
   missedApproachGreen: boolean;

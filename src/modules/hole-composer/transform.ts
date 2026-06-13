@@ -48,6 +48,7 @@ interface PrePuttingState {
   missedApproachGreen: boolean;
   greenInRegulation: boolean;
   fairwayHit: boolean | null;
+  drivingDistanceYards: number | null;
   shortGameStrokes: number;
 }
 
@@ -58,12 +59,14 @@ function resolvePrePuttingState(
 ): PrePuttingState {
   let strokes = 0;
   let fairwayHit: boolean | null = null;
+  let drivingDistanceYards: number | null = null;
   let remainingDistanceYards = hole.lengthYards;
 
   if (hole.par === 4 || hole.par === 5) {
     strokes += 1;
     const teeOutcome = simulateTeeShotDrive(golfer, hole, random);
     fairwayHit = teeOutcome.lie === "fairway";
+    drivingDistanceYards = teeOutcome.drivingDistanceYards;
     remainingDistanceYards = teeOutcome.remainingDistanceYards;
 
     const layup = applyPar5LayupIfNeeded(hole, remainingDistanceYards, random);
@@ -88,6 +91,7 @@ function resolvePrePuttingState(
       missedApproachGreen: false,
       greenInRegulation: strokes <= regulationLimit,
       fairwayHit,
+      drivingDistanceYards,
       shortGameStrokes: 0,
     };
   }
@@ -137,6 +141,7 @@ function resolvePrePuttingState(
     missedApproachGreen: true,
     greenInRegulation: false,
     fairwayHit,
+    drivingDistanceYards,
     shortGameStrokes,
   };
 }
@@ -170,6 +175,7 @@ export function simulateHoleTrial(
     totalStrokes,
     putts,
     strokesToGreen: prePutting.strokesBeforePutting,
+    drivingDistanceYards: prePutting.drivingDistanceYards,
     fairwayHit: prePutting.fairwayHit,
     greenInRegulation: prePutting.greenInRegulation,
     missedApproachGreen: prePutting.missedApproachGreen,

@@ -45,6 +45,8 @@ export function simulateRoundTrial(
   let greenInRegulationCount = 0;
   let fairwayHits = 0;
   let fairwayTrials = 0;
+  let drivingDistanceYardsTotal = 0;
+  let drivingDistanceTrials = 0;
   let missedApproachGreens = 0;
   let upAndDownCount = 0;
   let scrambleCount = 0;
@@ -67,6 +69,11 @@ export function simulateRoundTrial(
       }
     }
 
+    if (outcome.drivingDistanceYards !== null) {
+      drivingDistanceTrials += 1;
+      drivingDistanceYardsTotal += outcome.drivingDistanceYards;
+    }
+
     if (outcome.missedApproachGreen) {
       missedApproachGreens += 1;
       if (outcome.upAndDown) {
@@ -86,6 +93,8 @@ export function simulateRoundTrial(
     greenInRegulationCount,
     fairwayHits,
     fairwayTrials,
+    drivingDistanceYardsTotal,
+    drivingDistanceTrials,
     missedApproachGreens,
     upAndDownCount,
     scrambleCount,
@@ -115,6 +124,8 @@ export function aggregateGolferRoundStats(
   let girTotal = 0;
   let fairwayHits = 0;
   let fairwayTrials = 0;
+  let drivingDistanceYardsTotal = 0;
+  let drivingDistanceTrials = 0;
   let missedApproachGreens = 0;
   let upAndDownCount = 0;
   let scrambleCount = 0;
@@ -126,6 +137,8 @@ export function aggregateGolferRoundStats(
     girTotal += outcome.greenInRegulationCount;
     fairwayHits += outcome.fairwayHits;
     fairwayTrials += outcome.fairwayTrials;
+    drivingDistanceYardsTotal += outcome.drivingDistanceYardsTotal;
+    drivingDistanceTrials += outcome.drivingDistanceTrials;
     missedApproachGreens += outcome.missedApproachGreens;
     upAndDownCount += outcome.upAndDownCount;
     scrambleCount += outcome.scrambleCount;
@@ -150,6 +163,10 @@ export function aggregateGolferRoundStats(
     averagePuttsPerRound: puttTotal / trials,
     fairwayHitRate:
       fairwayTrials > 0 ? fairwayHits / fairwayTrials : null,
+    averageDrivingDistanceYards:
+      drivingDistanceTrials > 0
+        ? drivingDistanceYardsTotal / drivingDistanceTrials
+        : null,
     greenInRegulationRate: girTotal / totalHoles,
     upAndDownRate:
       missedApproachGreens > 0 ? upAndDownCount / missedApproachGreens : 0,

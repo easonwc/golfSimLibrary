@@ -22,6 +22,8 @@ export interface GolferRoundStats {
   averagePuttsPerRound: number;
   /** Fairway hit rate across all par 4/5 holes in the round. */
   fairwayHitRate: number | null;
+  /** Average driving distance on par 4/5 tee shots (yards). */
+  averageDrivingDistanceYards: number | null;
   /** Share of holes where the green was hit in regulation. */
   greenInRegulationRate: number;
   /** Share of missed-approach-green situations converted up-and-down. */
@@ -46,6 +48,8 @@ export interface RoundTrialOutcome {
   greenInRegulationCount: number;
   fairwayHits: number;
   fairwayTrials: number;
+  drivingDistanceYardsTotal: number;
+  drivingDistanceTrials: number;
   missedApproachGreens: number;
   upAndDownCount: number;
   scrambleCount: number;
