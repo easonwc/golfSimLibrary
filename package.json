@@ -1,0 +1,56 @@
+{
+  "name": "golf-sim-library",
+  "version": "0.1.0",
+  "description": "Monte Carlo golf simulation library for modeling golfer performance on holes and full rounds",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "golf",
+    "simulation",
+    "monte-carlo",
+    "typescript",
+    "sports-analytics"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/easonwc/golfSimLibrary.git"
+  },
+  "bugs": {
+    "url": "https://github.com/easonwc/golfSimLibrary/issues"
+  },
+  "homepage": "https://github.com/easonwc/golfSimLibrary#readme",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./fixtures": {
+      "types": "./dist/fixtures/index.d.ts",
+      "import": "./dist/fixtures/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build && npm test",
+    "example:hole": "npm run build && node examples/simulate-hole.mjs",
+    "example:round": "npm run build && node examples/simulate-round.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
