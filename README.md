@@ -2,7 +2,7 @@
 
 Monte Carlo golf simulation for Node.js and TypeScript. Model golfers with numerical skill attributes, describe holes and courses with numerical difficulty attributes, and simulate outcomes from individual shots through full 18-hole rounds.
 
-Designed as a reusable library for apps that need expected scores, GIR rates, fairway percentages, putting stats, and score distributions.
+Designed as a reusable library for apps that need expected scores, GIR rates, fairway percentages, putting stats, driving distance, and score distributions. Supports **male (PGA)** and **female (LPGA)** calibration via the optional `gender` field on golfers.
 
 ## Requirements
 
@@ -45,9 +45,11 @@ const result = simulateHole({
   golfers: [
     {
       id: "player-1",
+      gender: "male",
       putting: { putting: 72, shortPutting: 70, lagPutting: 74 },
       approach: { approach: 78, accuracy: 76, distanceControl: 80, dispersion: 74 },
       shortGame: { shortGame: 75, chipping: 78, bunkerPlay: 70, pitching: 74 },
+      teeShot: { driving: 74, distance: 76, accuracy: 72, dispersion: 70 },
       clubs: { driver: 76, wood: 74, longIron: 78, midIron: 79, shortIron: 80, wedge: 82 },
     },
   ],
@@ -57,6 +59,8 @@ const result = simulateHole({
 
 console.log(result.golferStats[0].expectedScore);
 ```
+
+Set `gender: "female"` for LPGA distance and performance calibration. When omitted, golfers default to male (PGA) behavior.
 
 ### Simulate a full round
 
@@ -93,6 +97,35 @@ simulateRound({
 });
 ```
 
+### Generate random golfers and courses
+
+```typescript
+import {
+  generateRandomCourse,
+  generateRandomGolferAttributes,
+  generateRandomGolfers,
+  simulateRound,
+} from "golf-sim-library";
+
+// gender is required when generating random skill attributes
+const lpgaField = generateRandomGolfers(4, { gender: "female", seed: 42 }).map(
+  (attrs, index) => ({
+    id: `player-${index + 1}`,
+    name: `Player ${index + 1}`,
+    ...attrs,
+  }),
+);
+
+const course = generateRandomCourse({
+  parThrees: 4,
+  parFives: 4,
+  difficulty: "medium", // "easy" | "medium" | "hard"
+  seed: 99,
+});
+
+const result = simulateRound({ course, golfers: lpgaField, trials: 2000, seed: 1 });
+```
+
 Run the included examples:
 
 ```bash
@@ -114,6 +147,12 @@ Shot modules
 Composers
 ├── Hole composer   one hole, 1–4 golfers
 └── Round composer  18 holes, 1–4 golfers
+
+Calibration
+├── gender-distance      carry gap by shot length (driver → wedge)
+├── gender-performance   dispersion / putting / scramble multipliers
+├── pga-benchmarks       male elite anchors
+└── lpga-benchmarks      female elite anchors
 ```
 
 ### Per-hole pipeline
@@ -128,6 +167,8 @@ Par 4/5:  Tee shot → Approach ──miss──► Short game ──► Putting
 Par 5:    Tee shot → [Layup if >210 yds] → Approach → ...
 ```
 
+Par-5 layup distance and tee-shot carry are gender-adjusted when `gender: "female"`.
+
 ## Core types
 
 All ability ratings use a **0–100 scale** (higher is better). Hole difficulty attributes use **0–1** unless noted.
@@ -136,6 +177,7 @@ All ability ratings use a **0–100 scale** (higher is better). Hole difficulty 
 
 | Group | Fields |
 |-------|--------|
+| `gender` | `"male"` or `"female"` — optional on hand-built golfers (defaults to `"male"`); **required** when using `generateRandomGolferAttributes` |
 | `putting` | `putting`, `shortPutting`, `lagPutting` |
 | `approach` | `approach`, `accuracy`, `distanceControl`, `dispersion` |
 | `shortGame` | `shortGame`, `chipping`, `bunkerPlay`, `pitching` |
@@ -173,6 +215,30 @@ Category attributes (`approach`, `teeShot`, etc.) describe overall technique; **
 
 Each module also exports `*Validated` variants (skip re-validation), single-shot simulators, and `validate*Input` helpers.
 
+### Utilities
+
+| Function | Description |
+|----------|-------------|
+| `generateRandomGolferAttributes({ gender, seed? })` | Random 0–99 skill ratings; `gender` required |
+| `generateRandomGolfers(count, { gender, seed? })` | Batch of independent random attribute sets |
+| `generateRandomCourse({ parThrees, parFives, difficulty?, seed? })` | Random 18-hole course (`difficulty`: `easy` \| `medium` \| `hard`) |
+| `averageCourseHardness(course)` | Mean hole difficulty (0–1) |
+| `countPars(course)` | Par breakdown `{ threes, fours, fives }` |
+
+### Calibration exports
+
+| Export | Description |
+|--------|-------------|
+| `ELITE_SKILL_RATING` | Anchor skill level (99) |
+| `PGA_TOUR_ELITE_BENCHMARKS` | Male elite tour stat targets |
+| `LPGA_TOUR_ELITE_BENCHMARKS` | Female elite tour stat targets |
+| `eliteBenchmarksForGender(gender)` | Returns PGA or LPGA benchmark object |
+| `calibrationToleranceForGender(gender)` | Acceptable regression-test tolerances |
+| `applyGenderDistanceOffset`, `genderDistanceGapYards` | Carry gap by shot length |
+| `genderDispersionScale`, `genderPuttingMakeRateScale`, etc. | Gender performance multipliers |
+| `GENDER_PERFORMANCE_CALIBRATION` | Raw multiplier table (male = 1.0) |
+| `dispersionScale`, `scaleYardsToSkill`, … | Shared skill-scaling helpers |
+
 ### Constants
 
 | Name | Value |
@@ -183,27 +249,68 @@ Each module also exports `*Validated` variants (skip re-validation), single-shot
 
 ## Skill calibration
 
-All golfer attributes use a **0–100 scale** where **99 represents elite PGA Tour performance** in that category. Lower ratings scale proportionally from that anchor.
+All golfer attributes use a **0–100 scale** where **99 represents elite tour performance** in that category. Lower ratings scale proportionally from that anchor.
 
-At skill 99 across all attributes, a full round on the sample tour-style course targets:
+### Gender and distance
+
+`gender` affects expected carry distances. The gap narrows as shots get shorter:
+
+| Shot context | Female carry gap vs male |
+|--------------|--------------------------|
+| Driver (~280+ yds) | ~40 yards |
+| Wedge (~115 yds) | ~10 yards |
+| In between | Linear interpolation |
+
+Use `applyGenderDistanceOffset(baseYards, contextYards, gender)` for custom distance logic.
+
+### Elite benchmarks (skill 99, sample tour-style course)
+
+**Male (`gender: "male"` or omitted)** — PGA Tour anchors:
 
 | Stat | Target |
 |------|--------|
 | Putts per round | ~27 |
 | Greens in regulation | ~70% |
 | Fairways hit (par 4/5) | ~65% |
+| Average driving distance | ~305 yds |
 | Score vs par 72 | ~−3 |
 | Scrambling (when GIR missed) | ~62% |
 
-Calibration helpers and benchmarks live in `golf-sim-library` exports (`ELITE_SKILL_RATING`, `PGA_TOUR_ELITE_BENCHMARKS`, `dispersionScale`, etc.). Run `node scripts/calibrate-baseline.mjs` to spot-check elite vs mid-skill output.
+**Female (`gender: "female"`)** — LPGA Tour anchors:
+
+| Stat | Target |
+|------|--------|
+| Putts per round | ~28.5 |
+| Greens in regulation | ~77% |
+| Fairways hit (par 4/5) | ~83% |
+| Average driving distance | ~265 yds |
+| Score vs par 72 | ~−2.5 |
+| Scrambling (when GIR missed) | ~76% |
+
+Female golfers also receive gender-specific dispersion, putting, and short-game multipliers (`GENDER_PERFORMANCE_CALIBRATION`) so full-round stats match LPGA anchors on the same course layout.
+
+Regression tests in `tests/calibration.test.ts` validate both tour calibrations. Spot-check output with:
+
+```bash
+npm run build
+node scripts/calibrate-baseline.mjs
+```
+
+This prints PGA and LPGA elite-99 golfers alongside a mid-skill baseline.
 
 ## Input requirements
 
 ### Hole composer / round composer
 
 - **Golfers:** 1–4, unique `id`, all skill groups populated (`putting`, `approach`, `shortGame`, `clubs`; plus `teeShot` when needed)
+- **`gender`:** optional on hand-built golfers (`"male"` \| `"female"`, defaults to `"male"`)
 - **`teeShot`:** required on golfers when the course/hole includes par 4 or par 5 holes
 - **Round composer:** exactly 18 holes, unique hole `id`s, all hole attribute groups populated
+
+### Random golfer generator
+
+- **`gender` is required** in `GenerateRandomGolferOptions`
+- Returns a `GolferSkillAttributes` object (skills + gender); spread into your own object with `id` and optional `name`
 
 ### Trials and seeds
 
@@ -258,11 +365,17 @@ All hole-level metrics aggregated across 18 holes, plus `holeByHoleExpectedScore
 
 ```
 src/
-├── index.ts              Public API barrel
-├── types/                Shared golfer and hole types
-├── errors.ts             ValidationError, GolfSimError
-├── utils/random.ts       Seeded RNG + gaussian sampling
-├── fixtures/             Sample data for demos and tests
+├── index.ts                 Public API barrel
+├── types/                   Shared golfer and hole types
+├── errors.ts                ValidationError, GolfSimError
+├── calibration/             PGA/LPGA benchmarks, gender distance & performance
+├── clubs/                   Per-club skill blending by approach yardage
+├── validation/              Shared golfer profile parsing (gender, name)
+├── utils/
+│   ├── random.ts            Seeded RNG + gaussian sampling
+│   ├── generate-golfer.ts   Random golfer skill generation
+│   └── generate-course.ts   Random 18-hole course generation
+├── fixtures/                Sample data for demos and tests
 └── modules/
     ├── putting/
     ├── approach/
@@ -270,8 +383,9 @@ src/
     ├── tee-shot/
     ├── hole-composer/
     └── round-composer/
-examples/                 Runnable demos (import from dist/)
-tests/                    Vitest test suites
+examples/                    Runnable demos (import from dist/)
+scripts/                     Calibration spot-check scripts
+tests/                       Vitest test suites
 ```
 
 ## License
