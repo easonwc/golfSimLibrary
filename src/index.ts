@@ -24,6 +24,14 @@ export {
 } from "./types/index.js";
 export { GolfSimError, ValidationError } from "./errors.js";
 export {
+  generateRandomGolferAttributes,
+  generateRandomGolfers,
+} from "./utils/generate-golfer.js";
+export type {
+  GenerateRandomGolferOptions,
+  GolferSkillAttributes,
+} from "./utils/generate-golfer.js";
+export {
   estimateFirstPuttDistanceFeet,
   makeRateAtDistance,
   simulatePutting,
