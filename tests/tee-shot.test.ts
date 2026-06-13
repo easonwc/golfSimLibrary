@@ -132,6 +132,18 @@ describe("expectedDrivingDistanceYards", () => {
       expectedDrivingDistanceYards(accurateDriver),
     );
   });
+
+  it("returns shorter expected drives for female golfers at the same skill", () => {
+    const male = { ...bomber, gender: "male" as const };
+    const female = { ...bomber, gender: "female" as const };
+    expect(expectedDrivingDistanceYards(female)).toBeLessThan(
+      expectedDrivingDistanceYards(male),
+    );
+    expect(
+      expectedDrivingDistanceYards(male) -
+        expectedDrivingDistanceYards(female),
+    ).toBeCloseTo(40, 0);
+  });
 });
 
 describe("calculateLateralDispersionYards", () => {

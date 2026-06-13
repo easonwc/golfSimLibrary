@@ -2,7 +2,9 @@ import { ValidationError } from "../../errors.js";
 import { approachClubSkill } from "../../clubs/index.js";
 import {
   blendedRelativeSkill,
-  dispersionScale,
+  genderDispersionScale,
+  genderOnGreenProximityMultiplier,
+  performanceGender,
 } from "../../calibration/index.js";
 import type { Golfer, GolferApproachAttributes, Hole } from "../../types/index.js";
 import { gaussianRandom, type RandomSource } from "../../utils/random.js";
@@ -90,16 +92,18 @@ export function calculateDispersionSigmas(
   const landingPenalty =
     1 + holeApproach.landingDifficulty * 0.18 + holeApproach.elevationPenalty * 0.1;
 
+  const gender = performanceGender(golfer);
+
   return {
     depthYards:
       ELITE_APPROACH_DEPTH_SIGMA_YARDS *
       distanceScale *
-      dispersionScale(depthSkill * 99) *
+      genderDispersionScale(depthSkill * 99, gender) *
       landingPenalty,
     lateralYards:
       ELITE_APPROACH_LATERAL_SIGMA_YARDS *
       distanceScale *
-      dispersionScale(lateralSkill * 99) *
+      genderDispersionScale(lateralSkill * 99, gender) *
       landingPenalty,
   };
 }
@@ -132,8 +136,11 @@ function onGreenProximityFeet(
     approach.dispersion,
     approach.distanceControl,
   );
+  const gender = performanceGender(golfer);
   const sigma =
-    ELITE_ON_GREEN_PROXIMITY_SIGMA_FEET * dispersionScale(skill * 99);
+    ELITE_ON_GREEN_PROXIMITY_SIGMA_FEET *
+    genderDispersionScale(skill * 99, gender) *
+    genderOnGreenProximityMultiplier(gender);
   const depthFeet = gaussianRandom(random, 0, sigma);
   const lateralFeet = gaussianRandom(random, 0, sigma);
   return Math.max(1, Math.sqrt(depthFeet ** 2 + lateralFeet ** 2));

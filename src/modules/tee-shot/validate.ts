@@ -3,6 +3,7 @@ import {
   assertNonEmptyString,
   ValidationError,
 } from "../../errors.js";
+import { parseGolferProfileFields } from "../../validation/golfer-profile.js";
 import type { Golfer, Hole } from "../../types/index.js";
 import type { TeeShotInput } from "./types.js";
 
@@ -30,7 +31,7 @@ function validateGolfer(golfer: unknown): Golfer {
 
   return {
     id,
-    name: typeof g.name === "string" ? g.name : undefined,
+    ...parseGolferProfileFields(g, "golfer"),
     teeShot: {
       driving: validateAbility(teeShot.driving, "golfer.teeShot.driving"),
       distance: validateAbility(teeShot.distance, "golfer.teeShot.distance"),

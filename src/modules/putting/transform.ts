@@ -1,5 +1,5 @@
 import { ValidationError } from "../../errors.js";
-import { dispersionScale, puttingMakeRateScale } from "../../calibration/index.js";
+import { genderDispersionScale, genderPuttingMakeRateScale, performanceGender } from "../../calibration/index.js";
 import type { Golfer, GolferPuttingAttributes, Hole } from "../../types/index.js";
 import type { PuttingDistribution, PuttingStats, RandomSource } from "./types.js";
 
@@ -89,7 +89,7 @@ export function makeRateAtDistance(
   const putting = requirePutting(golfer);
   const skill = blendedPuttingSkill(putting, distanceFeet);
 
-  let rate = tourRate * puttingMakeRateScale(skill);
+  let rate = tourRate * genderPuttingMakeRateScale(skill, performanceGender(golfer));
   rate *= 1 - greenDifficultyPenalty(hole);
   return Math.min(0.995, Math.max(0.005, rate));
 }
@@ -127,7 +127,7 @@ function leaveDistanceAfterMiss(
   random: RandomSource,
 ): number {
   const lagSkill = requirePutting(golfer).lagPutting;
-  const lagScale = dispersionScale(lagSkill);
+  const lagScale = genderDispersionScale(lagSkill, performanceGender(golfer));
   const speedFactor = hole.green.speed / 10;
 
   if (attemptDistanceFeet <= 6) {

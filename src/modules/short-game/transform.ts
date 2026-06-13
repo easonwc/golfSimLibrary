@@ -1,7 +1,9 @@
 import { ValidationError } from "../../errors.js";
 import { resolveClubAttributes } from "../../clubs/index.js";
 import {
-  dispersionScale,
+  genderDispersionScale,
+  genderShortGameContactRateMultiplier,
+  performanceGender,
   scaleRateToSkill,
 } from "../../calibration/index.js";
 import type {
@@ -44,7 +46,8 @@ const ELITE_CHIP_ON_GREEN_PROXIMITY_SIGMA_FEET = 3.0;
 function chipOnGreenProximityFeet(golfer: Golfer, random: RandomSource): number {
   const skill = blendedShortGameSkill(golfer, 12, "fringe");
   const sigma =
-    ELITE_CHIP_ON_GREEN_PROXIMITY_SIGMA_FEET * dispersionScale(skill);
+    ELITE_CHIP_ON_GREEN_PROXIMITY_SIGMA_FEET *
+    genderDispersionScale(skill, performanceGender(golfer));
   const depthFeet = gaussianRandom(random, 0, sigma);
   const lateralFeet = gaussianRandom(random, 0, sigma);
   return Math.max(1, Math.sqrt(depthFeet ** 2 + lateralFeet ** 2));
@@ -100,9 +103,11 @@ function greenContactRate(
     throw new ValidationError("hole.shortGame must be an object");
   }
 
+  const gender = performanceGender(golfer);
   const skill = blendedShortGameSkill(golfer, missDistanceYards, lie);
   const eliteRate = ELITE_CONTACT_RATE[lie];
   let rate = scaleRateToSkill(skill, eliteRate, eliteRate * 0.55);
+  rate *= genderShortGameContactRateMultiplier(gender);
 
   rate -= Math.max(0, missDistanceYards - 20) * 0.008;
   rate -= holeShortGame.roughDifficulty * 0.05;
@@ -125,6 +130,7 @@ export function calculateShortGameDispersionFeet(
     throw new ValidationError("hole.shortGame must be an object");
   }
 
+  const gender = performanceGender(golfer);
   const skill = blendedShortGameSkill(golfer, missDistanceYards, lie);
   const distanceScale = Math.sqrt(missDistanceYards / 12);
 
@@ -136,7 +142,7 @@ export function calculateShortGameDispersionFeet(
   return (
     ELITE_SHORT_GAME_RADIAL_SIGMA_FEET *
     distanceScale *
-    dispersionScale(skill) *
+    genderDispersionScale(skill, gender) *
     liePenalty *
     roughPenalty *
     collectionPenalty *

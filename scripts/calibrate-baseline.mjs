@@ -1,9 +1,26 @@
-import { simulateRound, createUniformClubAttributes } from "../dist/index.js";
+import {
+  simulateRound,
+  createUniformClubAttributes,
+  LPGA_TOUR_ELITE_BENCHMARKS,
+  PGA_TOUR_ELITE_BENCHMARKS,
+} from "../dist/index.js";
 import { createSampleCourse } from "../dist/fixtures/index.js";
 
-const elite99 = {
-  id: "elite-99",
-  name: "Elite 99",
+const elite99Male = {
+  id: "elite-99-male",
+  gender: "male",
+  name: "Elite 99 PGA",
+  putting: { putting: 99, shortPutting: 99, lagPutting: 99 },
+  approach: { approach: 99, accuracy: 99, distanceControl: 99, dispersion: 99 },
+  shortGame: { shortGame: 99, chipping: 99, bunkerPlay: 99, pitching: 99 },
+  teeShot: { driving: 99, distance: 99, accuracy: 99, dispersion: 99 },
+  clubs: createUniformClubAttributes(99),
+};
+
+const elite99Female = {
+  id: "elite-99-female",
+  gender: "female",
+  name: "Elite 99 LPGA",
   putting: { putting: 99, shortPutting: 99, lagPutting: 99 },
   approach: { approach: 99, accuracy: 99, distanceControl: 99, dispersion: 99 },
   shortGame: { shortGame: 99, chipping: 99, bunkerPlay: 99, pitching: 99 },
@@ -23,7 +40,11 @@ const mid50 = {
 
 const course = createSampleCourse();
 
-for (const golfer of [elite99, mid50]) {
+console.log("PGA anchors:", PGA_TOUR_ELITE_BENCHMARKS);
+console.log("LPGA anchors:", LPGA_TOUR_ELITE_BENCHMARKS);
+console.log("");
+
+for (const golfer of [elite99Male, elite99Female, mid50]) {
   const r = simulateRound({ course, golfers: [golfer], trials: 3000, seed: 42 });
   const s = r.golferStats[0];
   console.log(golfer.name);

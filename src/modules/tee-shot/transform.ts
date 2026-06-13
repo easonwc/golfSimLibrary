@@ -1,9 +1,13 @@
 import { ValidationError } from "../../errors.js";
 import { resolveClubAttributes } from "../../clubs/index.js";
 import {
+  genderDispersionScale,
+  genderTeeLateralDispersionMultiplier,
+  performanceGender,
+  applyGenderDistanceOffset,
   blendedRelativeSkill,
-  dispersionScale,
   PGA_TOUR_ELITE_BENCHMARKS,
+  resolveGolferGender,
   scaleYardsToSkill,
 } from "../../calibration/index.js";
 import type {
@@ -40,10 +44,15 @@ export function expectedDrivingDistanceYards(golfer: Golfer): number {
     teeShot.distance,
     teeShot.driving,
   ) * 99;
-  return scaleYardsToSkill(
+  const maleBaselineYards = scaleYardsToSkill(
     blendedDistance,
     PGA_TOUR_ELITE_BENCHMARKS.drivingDistanceYards,
     210,
+  );
+  return applyGenderDistanceOffset(
+    maleBaselineYards,
+    maleBaselineYards,
+    resolveGolferGender(golfer),
   );
 }
 
@@ -55,7 +64,7 @@ export function calculateDrivingDistanceSigma(golfer: Golfer): number {
     teeShot.dispersion,
     teeShot.distance,
   );
-  return ELITE_TEE_DISTANCE_SIGMA_YARDS * dispersionScale(skill * 99);
+  return ELITE_TEE_DISTANCE_SIGMA_YARDS * genderDispersionScale(skill * 99, performanceGender(golfer));
 }
 
 export function fairwayHalfWidthYards(hole: Hole): number {
@@ -87,8 +96,9 @@ export function calculateLateralDispersionYards(
 
   return (
     ELITE_TEE_LATERAL_SIGMA_YARDS *
-    dispersionScale(skill * 99) *
-    narrowPenalty
+    genderDispersionScale(skill * 99, performanceGender(golfer)) *
+    narrowPenalty *
+    genderTeeLateralDispersionMultiplier(performanceGender(golfer))
   );
 }
 

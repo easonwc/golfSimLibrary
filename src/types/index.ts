@@ -1,5 +1,8 @@
 /** Numeric ability rating on a 0–100 scale (higher is better). */
 export type AbilityRating = number;
+
+/** Biological sex used for distance benchmarks (optional; defaults to male). */
+export type GolferGender = "male" | "female";
 export interface GolferPuttingAttributes {
   /** Overall putting skill (0–100). */
   putting: AbilityRating;
@@ -68,6 +71,8 @@ export type ApproachClubType =
 export interface Golfer {
   id: string;
   name?: string;
+  /** Affects expected carry distances; omitted = male PGA Tour baseline. */
+  gender?: GolferGender;
   putting?: GolferPuttingAttributes;
   approach?: GolferApproachAttributes;
   shortGame?: GolferShortGameAttributes;

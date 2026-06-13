@@ -1,19 +1,23 @@
 import { describe, expect, it } from "vitest";
 import {
-  CALIBRATION_TOLERANCE,
+  calibrationToleranceForGender,
   ELITE_SKILL_RATING,
+  eliteBenchmarksForGender,
+  LPGA_TOUR_ELITE_BENCHMARKS,
   PGA_TOUR_ELITE_BENCHMARKS,
 } from "../src/calibration/index.js";
 import { createUniformClubAttributes } from "../src/clubs/index.js";
 import { createSampleCourse } from "../src/fixtures/index.js";
-import type { CompleteGolfer } from "../src/types/index.js";
+import type { CompleteGolfer, GolferGender } from "../src/types/index.js";
 import { simulateRound } from "../src/modules/round-composer/index.js";
+import { expectEliteCalibrationStats } from "./calibration-helpers.js";
 
-function createEliteGolfer(): CompleteGolfer {
+function createEliteGolfer(gender?: GolferGender): CompleteGolfer {
   const rating = ELITE_SKILL_RATING;
   return {
-    id: "elite-calibration",
-    name: "Elite Calibration",
+    id: gender === "female" ? "elite-lpga-calibration" : "elite-pga-calibration",
+    name: gender === "female" ? "Elite LPGA Calibration" : "Elite PGA Calibration",
+    gender,
     putting: {
       putting: rating,
       shortPutting: rating,
@@ -44,7 +48,41 @@ function createEliteGolfer(): CompleteGolfer {
 describe("PGA Tour elite calibration (skill 99)", () => {
   it("matches tour anchor statistics within tolerance", () => {
     const course = createSampleCourse();
-    const golfer = createEliteGolfer();
+    const golfer = createEliteGolfer("male");
+    const result = simulateRound({
+      course,
+      golfers: [golfer],
+      trials: 2500,
+      seed: 42,
+    });
+
+    expectEliteCalibrationStats(
+      result.golferStats[0]!,
+      PGA_TOUR_ELITE_BENCHMARKS,
+      calibrationToleranceForGender("male"),
+    );
+  });
+});
+
+describe("LPGA Tour elite calibration (skill 99, female)", () => {
+  it("defines LPGA tour anchor values", () => {
+    expect(LPGA_TOUR_ELITE_BENCHMARKS).toEqual({
+      puttsPerRound: 28.5,
+      greenInRegulationRate: 0.77,
+      fairwayHitRate: 0.83,
+      scoreRelativeToPar72: -2.5,
+      drivingDistanceYards: 265,
+      scrambleRate: 0.76,
+    });
+  });
+
+  it("defines driving distance as PGA anchor minus gender gap", () => {
+    expect(LPGA_TOUR_ELITE_BENCHMARKS.drivingDistanceYards).toBe(265);
+  });
+
+  it("matches LPGA driving distance anchor within tolerance", () => {
+    const course = createSampleCourse();
+    const golfer = createEliteGolfer("female");
     const result = simulateRound({
       course,
       golfers: [golfer],
@@ -53,45 +91,8 @@ describe("PGA Tour elite calibration (skill 99)", () => {
     });
 
     const stats = result.golferStats[0]!;
-    const benchmarks = PGA_TOUR_ELITE_BENCHMARKS;
-    const tolerance = CALIBRATION_TOLERANCE;
-    const scrambleWhenMissedGir =
-      stats.scrambleRate / (1 - stats.greenInRegulationRate);
-
-    expect(stats.averagePuttsPerRound).toBeGreaterThanOrEqual(
-      benchmarks.puttsPerRound - tolerance.puttsPerRound,
-    );
-    expect(stats.averagePuttsPerRound).toBeLessThanOrEqual(
-      benchmarks.puttsPerRound + tolerance.puttsPerRound,
-    );
-
-    expect(stats.greenInRegulationRate).toBeGreaterThanOrEqual(
-      benchmarks.greenInRegulationRate - tolerance.greenInRegulationRate,
-    );
-    expect(stats.greenInRegulationRate).toBeLessThanOrEqual(
-      benchmarks.greenInRegulationRate + tolerance.greenInRegulationRate,
-    );
-
-    expect(stats.fairwayHitRate).toBeGreaterThanOrEqual(
-      benchmarks.fairwayHitRate - tolerance.fairwayHitRate,
-    );
-    expect(stats.fairwayHitRate).toBeLessThanOrEqual(
-      benchmarks.fairwayHitRate + tolerance.fairwayHitRate,
-    );
-
-    expect(stats.expectedScoreRelativeToPar).toBeGreaterThanOrEqual(
-      benchmarks.scoreRelativeToPar72 - tolerance.scoreRelativeToPar72,
-    );
-    expect(stats.expectedScoreRelativeToPar).toBeLessThanOrEqual(
-      benchmarks.scoreRelativeToPar72 + tolerance.scoreRelativeToPar72,
-    );
-
-    expect(scrambleWhenMissedGir).toBeGreaterThanOrEqual(
-      benchmarks.scrambleRate - tolerance.scrambleRateWhenMissedGir,
-    );
-    expect(scrambleWhenMissedGir).toBeLessThanOrEqual(
-      benchmarks.scrambleRate + tolerance.scrambleRateWhenMissedGir,
-    );
+    const benchmarks = LPGA_TOUR_ELITE_BENCHMARKS;
+    const tolerance = calibrationToleranceForGender("female");
 
     expect(stats.averageDrivingDistanceYards).not.toBeNull();
     expect(stats.averageDrivingDistanceYards!).toBeGreaterThanOrEqual(
@@ -100,5 +101,29 @@ describe("PGA Tour elite calibration (skill 99)", () => {
     expect(stats.averageDrivingDistanceYards!).toBeLessThanOrEqual(
       benchmarks.drivingDistanceYards + tolerance.drivingDistanceYards,
     );
+  });
+
+  it("matches all LPGA tour anchor statistics within tolerance", () => {
+    const course = createSampleCourse();
+    const golfer = createEliteGolfer("female");
+    const result = simulateRound({
+      course,
+      golfers: [golfer],
+      trials: 2500,
+      seed: 42,
+    });
+
+    expectEliteCalibrationStats(
+      result.golferStats[0]!,
+      eliteBenchmarksForGender("female"),
+      calibrationToleranceForGender("female"),
+    );
+  });
+});
+
+describe("eliteBenchmarksForGender", () => {
+  it("returns PGA benchmarks for male and LPGA benchmarks for female", () => {
+    expect(eliteBenchmarksForGender("male")).toBe(PGA_TOUR_ELITE_BENCHMARKS);
+    expect(eliteBenchmarksForGender("female")).toBe(LPGA_TOUR_ELITE_BENCHMARKS);
   });
 });

@@ -28,12 +28,19 @@ function expectRatingsInRange(
 
 describe("generateRandomGolferAttributes", () => {
   it("returns all skill groups with integer ratings from 0 to 99", () => {
-    expectRatingsInRange(generateRandomGolferAttributes());
+    expectRatingsInRange(generateRandomGolferAttributes({ gender: "male" }));
+  });
+
+  it("requires gender", () => {
+    expectRatingsInRange(generateRandomGolferAttributes({ gender: "female" }));
+    expect(generateRandomGolferAttributes({ gender: "female" }).gender).toBe(
+      "female",
+    );
   });
 
   it("is reproducible with a seed", () => {
-    const a = generateRandomGolferAttributes({ seed: 123 });
-    const b = generateRandomGolferAttributes({ seed: 123 });
+    const a = generateRandomGolferAttributes({ gender: "male", seed: 123 });
+    const b = generateRandomGolferAttributes({ gender: "male", seed: 123 });
     expect(a).toEqual(b);
   });
 
@@ -41,13 +48,12 @@ describe("generateRandomGolferAttributes", () => {
     const player = {
       id: "human-1",
       name: "Alex",
-      gender: "F",
       birthday: "1992-04-18",
-      ...generateRandomGolferAttributes({ seed: 7 }),
+      ...generateRandomGolferAttributes({ gender: "female", seed: 7 }),
     };
 
     expect(player.name).toBe("Alex");
-    expect(player.gender).toBe("F");
+    expect(player.gender).toBe("female");
     expect(player.putting.putting).toBeGreaterThanOrEqual(0);
     expect(player.clubs.driver).toBeLessThanOrEqual(99);
     expect(player.teeShot.driving).toBeGreaterThanOrEqual(0);
@@ -55,7 +61,7 @@ describe("generateRandomGolferAttributes", () => {
 
   it("produces simulatable golfers when merged with id", () => {
     const course = createSampleCourse();
-    const profile = generateRandomGolferAttributes({ seed: 99 });
+    const profile = generateRandomGolferAttributes({ gender: "male", seed: 99 });
 
     const result = simulateRound({
       course,
@@ -71,20 +77,23 @@ describe("generateRandomGolferAttributes", () => {
 
 describe("generateRandomGolfers", () => {
   it("returns the requested number of attribute sets", () => {
-    const golfers = generateRandomGolfers(4, { seed: 55 });
+    const golfers = generateRandomGolfers(4, { gender: "male", seed: 55 });
     expect(golfers).toHaveLength(4);
     for (const attrs of golfers) {
+      expect(attrs.gender).toBe("male");
       expectRatingsInRange(attrs);
     }
   });
 
   it("derives distinct seeds for each golfer in a batch", () => {
-    const golfers = generateRandomGolfers(3, { seed: 10 });
+    const golfers = generateRandomGolfers(3, { gender: "female", seed: 10 });
     expect(golfers[0]).not.toEqual(golfers[1]);
     expect(golfers[1]).not.toEqual(golfers[2]);
   });
 
   it("rejects non-positive counts", () => {
-    expect(() => generateRandomGolfers(0)).toThrow(RangeError);
+    expect(() => generateRandomGolfers(0, { gender: "male" })).toThrow(
+      RangeError,
+    );
   });
 });

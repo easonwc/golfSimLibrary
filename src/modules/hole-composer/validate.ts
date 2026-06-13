@@ -3,6 +3,7 @@ import {
   assertNonEmptyString,
   ValidationError,
 } from "../../errors.js";
+import { parseGolferProfileFields } from "../../validation/golfer-profile.js";
 import type {
   CompleteGolfer,
   CompleteHole,
@@ -237,7 +238,7 @@ export function validateCompleteGolfer(
 
   const complete: CompleteGolfer = {
     id,
-    name: typeof g.name === "string" ? g.name : undefined,
+    ...parseGolferProfileFields(g, prefix),
     putting: validatePuttingAttributes(g.putting, `${prefix}.putting`),
     approach: validateApproachAttributes(g.approach, `${prefix}.approach`),
     shortGame: validateShortGameAttributes(

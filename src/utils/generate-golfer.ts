@@ -2,14 +2,16 @@ import type {
   AbilityRating,
   GolferApproachAttributes,
   GolferClubAttributes,
+  GolferGender,
   GolferPuttingAttributes,
   GolferShortGameAttributes,
   GolferTeeShotAttributes,
 } from "../types/index.js";
 import { createRandomSource, type RandomSource } from "./random.js";
 
-/** Simulation skill groups without identity fields (`id`, `name`). */
+/** Simulation skill groups with required gender; add `id` and optional `name`. */
 export interface GolferSkillAttributes {
+  gender: GolferGender;
   putting: GolferPuttingAttributes;
   approach: GolferApproachAttributes;
   shortGame: GolferShortGameAttributes;
@@ -18,6 +20,8 @@ export interface GolferSkillAttributes {
 }
 
 export interface GenerateRandomGolferOptions {
+  /** Required — drives distance and LPGA/PGA calibration behavior. */
+  gender: GolferGender;
   /** Optional seed for reproducible attribute generation. */
   seed?: number;
 }
@@ -76,24 +80,23 @@ function randomTeeShotAttributes(random: RandomSource): GolferTeeShotAttributes 
 
 /**
  * Generates one set of golfer skill attributes (0–99 per field).
- * Spread into your own object alongside identity or profile fields:
+ * Spread into your own object alongside identity fields:
  *
  * ```typescript
  * const player = {
  *   id: "p-1",
  *   name: "Alex",
- *   gender: "F",
- *   birthday: "1992-04-18",
- *   ...generateRandomGolferAttributes({ seed: 42 }),
+ *   ...generateRandomGolferAttributes({ gender: "female", seed: 42 }),
  * };
  * ```
  */
 export function generateRandomGolferAttributes(
-  options: GenerateRandomGolferOptions = {},
+  options: GenerateRandomGolferOptions,
 ): GolferSkillAttributes {
   const random = createRandomSource(options.seed);
 
   return {
+    gender: options.gender,
     putting: randomPuttingAttributes(random),
     approach: randomApproachAttributes(random),
     shortGame: randomShortGameAttributes(random),
@@ -108,7 +111,7 @@ export function generateRandomGolferAttributes(
  */
 export function generateRandomGolfers(
   count: number,
-  options: GenerateRandomGolferOptions = {},
+  options: GenerateRandomGolferOptions,
 ): GolferSkillAttributes[] {
   if (!Number.isInteger(count) || count < 1) {
     throw new RangeError("count must be a positive integer");
@@ -118,7 +121,7 @@ export function generateRandomGolfers(
   for (let index = 0; index < count; index += 1) {
     const seed =
       options.seed === undefined ? undefined : options.seed + index * 10_007;
-    golfers.push(generateRandomGolferAttributes({ seed }));
+    golfers.push(generateRandomGolferAttributes({ ...options, seed }));
   }
 
   return golfers;

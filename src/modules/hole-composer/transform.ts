@@ -1,5 +1,10 @@
 import type { CompleteGolfer, CompleteHole } from "../../types/index.js";
-import { dispersionScale } from "../../calibration/index.js";
+import {
+  applyGenderDistanceOffset,
+  genderDispersionScale,
+  performanceGender,
+  resolveGolferGender,
+} from "../../calibration/index.js";
 import { resolveClubAttributes } from "../../clubs/index.js";
 import { gaussianRandom, type RandomSource } from "../../utils/random.js";
 import { simulateApproachShot } from "../approach/transform.js";
@@ -34,9 +39,15 @@ function applyPar5LayupIfNeeded(
   }
 
   const woodSkill = resolveClubAttributes(golfer).wood;
-  const layupSigma = 12 * dispersionScale(woodSkill);
+  const layupSigma =
+    12 * genderDispersionScale(woodSkill, performanceGender(golfer));
+  const layupExpectedYards = applyGenderDistanceOffset(
+    PAR5_LAYUP_DISTANCE_YARDS,
+    PAR5_LAYUP_DISTANCE_YARDS,
+    resolveGolferGender(golfer),
+  );
   const layupAdvance =
-    PAR5_LAYUP_DISTANCE_YARDS + gaussianRandom(random, 0, layupSigma);
+    layupExpectedYards + gaussianRandom(random, 0, layupSigma);
 
   return {
     remainingDistanceYards: Math.max(
