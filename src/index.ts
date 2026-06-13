@@ -33,9 +33,13 @@ export type {
 } from "./utils/generate-golfer.js";
 export {
   countPars,
+  averageCourseHardness,
   generateRandomCourse,
 } from "./utils/generate-course.js";
-export type { GenerateRandomCourseOptions } from "./utils/generate-course.js";
+export type {
+  CourseDifficulty,
+  GenerateRandomCourseOptions,
+} from "./utils/generate-course.js";
 export {
   estimateFirstPuttDistanceFeet,
   makeRateAtDistance,

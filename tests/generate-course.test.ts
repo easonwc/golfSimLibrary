@@ -4,6 +4,7 @@ import { simulateRound } from "../src/modules/round-composer/index.js";
 import { ROUND_HOLE_COUNT } from "../src/types/index.js";
 import { sampleTourPro } from "../src/fixtures/index.js";
 import {
+  averageCourseHardness,
   countPars,
   generateRandomCourse,
 } from "../src/utils/generate-course.js";
@@ -73,6 +74,38 @@ describe("generateRandomCourse", () => {
   it("rejects par counts that exceed 18 holes", () => {
     expect(() =>
       generateRandomCourse({ parThrees: 10, parFives: 10 }),
+    ).toThrow(RangeError);
+  });
+
+  it("defaults difficulty to medium", () => {
+    const implicit = generateRandomCourse({ parThrees: 4, parFives: 4, seed: 99 });
+    const explicit = generateRandomCourse({
+      parThrees: 4,
+      parFives: 4,
+      difficulty: "medium",
+      seed: 99,
+    });
+    expect(implicit).toEqual(explicit);
+  });
+
+  it("skews generated courses easier or harder by difficulty", () => {
+    const base = { parThrees: 4, parFives: 4, seed: 77 };
+    const easy = generateRandomCourse({ ...base, difficulty: "easy" });
+    const medium = generateRandomCourse({ ...base, difficulty: "medium" });
+    const hard = generateRandomCourse({ ...base, difficulty: "hard" });
+
+    expect(averageCourseHardness(easy)).toBeLessThan(averageCourseHardness(medium));
+    expect(averageCourseHardness(medium)).toBeLessThan(averageCourseHardness(hard));
+  });
+
+  it("rejects invalid difficulty values", () => {
+    expect(() =>
+      generateRandomCourse({
+        parThrees: 4,
+        parFives: 4,
+        // @ts-expect-error invalid difficulty for runtime guard test
+        difficulty: "extreme",
+      }),
     ).toThrow(RangeError);
   });
 });
